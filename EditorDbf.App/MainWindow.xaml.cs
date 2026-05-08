@@ -24,7 +24,10 @@ public partial class MainWindow : Window
             oldVm.PropertyChanged -= OnViewModelPropertyChanged;
 
         if (e.NewValue is MainViewModel newVm)
+        {
             newVm.PropertyChanged += OnViewModelPropertyChanged;
+            ApplyTheme(newVm.IsDarkTheme);
+        }
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)

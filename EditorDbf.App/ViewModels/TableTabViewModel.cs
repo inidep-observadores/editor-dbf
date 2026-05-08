@@ -51,6 +51,8 @@ public sealed class TableTabViewModel : ObservableObject
 
     public DbfTableDocument Document => _document;
 
+    public DbfHeaderInfo HeaderInfo => _document.HeaderInfo;
+
     public ObservableCollection<DbfFieldDescriptor> TableStructure { get; }
 
     public ObservableCollection<string> FilterColumns { get; }
@@ -233,6 +235,7 @@ public sealed class TableTabViewModel : ObservableObject
         HasPendingChanges = false;
         SubscribeToDataTable();
         OnPropertyChanged(nameof(CurrentTableView));
+        OnPropertyChanged(nameof(HeaderInfo));
         NotifyCommands();
     }
 

@@ -24,6 +24,7 @@ public sealed class MainViewModel : ObservableObject
     private TableTabViewModel? _selectedOpenTable;
     private string _statusMessage = "Listo.";
     private bool _isDarkTheme;
+    private CodePageOption? _selectedCodePageOption;
 
     public MainViewModel(ConnectionRepository connectionRepository, DbfTableService dbfTableService)
     {
@@ -34,6 +35,7 @@ public sealed class MainViewModel : ObservableObject
         Connections = new ObservableCollection<ConnectionProfile>(_state.Connections);
         DbfFiles = new ObservableCollection<string>();
         OpenTables = new ObservableCollection<TableTabViewModel>();
+        AvailableCodePages = new ObservableCollection<CodePageOption>(CreateCodePageOptions());
 
         ToggleThemeCommand = new RelayCommand(ToggleTheme);
         AddConnectionCommand = new RelayCommand(AddConnection);
@@ -45,10 +47,13 @@ public sealed class MainViewModel : ObservableObject
         ReloadTableCommand = new RelayCommand(ReloadCurrentTable, () => SelectedOpenTable is not null);
         SaveTableCommand = new RelayCommand(SaveCurrentTable, () => SelectedOpenTable is not null);
         ImportFromTableCommand = new RelayCommand(ImportFromTable, () => SelectedOpenTable is not null);
+        ApplyCodePageCommand = new RelayCommand(ApplyCodePageForCurrentTable, () => SelectedOpenTable is not null && SelectedCodePageOption is not null);
+        SaveCodePageToTableCommand = new RelayCommand(SaveCodePageToTableHeader, () => SelectedOpenTable is not null && SelectedCodePageOption?.LanguageDriver is not null);
         CopyStructureCommand = new RelayCommand(CopyStructureToClipboard, () => SelectedOpenTable is not null);
         CloseSelectedTabCommand = new RelayCommand(CloseSelectedTab, () => SelectedOpenTable is not null);
 
         TryRestoreLastConnection();
+        IsDarkTheme = _state.IsDarkTheme;
     }
 
     public bool IsDarkTheme
@@ -64,6 +69,8 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<string> DbfFiles { get; }
 
     public ObservableCollection<TableTabViewModel> OpenTables { get; }
+
+    public ObservableCollection<CodePageOption> AvailableCodePages { get; }
 
     public ICommand AddConnectionCommand { get; }
 
@@ -82,6 +89,10 @@ public sealed class MainViewModel : ObservableObject
     public ICommand SaveTableCommand { get; }
 
     public ICommand ImportFromTableCommand { get; }
+
+    public ICommand ApplyCodePageCommand { get; }
+
+    public ICommand SaveCodePageToTableCommand { get; }
 
     public ICommand CopyStructureCommand { get; }
 
@@ -142,6 +153,8 @@ public sealed class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(CurrentTableDisplayName));
             OnPropertyChanged(nameof(DirtyStatus));
             OnPropertyChanged(nameof(CurrentTableStructure));
+            OnPropertyChanged(nameof(CurrentTableHeaderInfo));
+            SyncSelectedCodePageFromActiveTable();
             NotifyCommands();
         }
     }
@@ -152,6 +165,20 @@ public sealed class MainViewModel : ObservableObject
 
     public IReadOnlyList<DbfFieldDescriptor> CurrentTableStructure => SelectedOpenTable?.TableStructure ?? [];
 
+    public DbfHeaderInfo? CurrentTableHeaderInfo => SelectedOpenTable?.HeaderInfo;
+
+    public CodePageOption? SelectedCodePageOption
+    {
+        get => _selectedCodePageOption;
+        set
+        {
+            if (SetProperty(ref _selectedCodePageOption, value))
+            {
+                NotifyCommands();
+            }
+        }
+    }
+
     public string StatusMessage
     {
         get => _statusMessage;
@@ -161,6 +188,8 @@ public sealed class MainViewModel : ObservableObject
     private void ToggleTheme()
     {
         IsDarkTheme = !IsDarkTheme;
+        _state.IsDarkTheme = IsDarkTheme;
+        PersistState();
     }
 
     private void AddConnection()
@@ -281,7 +310,8 @@ public sealed class MainViewModel : ObservableObject
 
         try
         {
-            var document = _dbfTableService.LoadTable(filePath);
+            var forcedCodePage = ResolvePreferredCodePage(filePath);
+            var document = _dbfTableService.LoadTable(filePath, forcedCodePage);
             var structure = _dbfTableService.DescribeFields(document.Fields);
             var tab = new TableTabViewModel(document, structure, CloseTab);
 
@@ -348,12 +378,15 @@ public sealed class MainViewModel : ObservableObject
 
         try
         {
-            var document = _dbfTableService.LoadTable(SelectedOpenTable.FilePath);
+            var forcedCodePage = ResolvePreferredCodePage(SelectedOpenTable.FilePath);
+            var document = _dbfTableService.LoadTable(SelectedOpenTable.FilePath, forcedCodePage);
             var structure = _dbfTableService.DescribeFields(document.Fields);
 
             SelectedOpenTable.ReplaceDocument(document, structure);
             OnPropertyChanged(nameof(CurrentTableStructure));
+            OnPropertyChanged(nameof(CurrentTableHeaderInfo));
             OnPropertyChanged(nameof(DirtyStatus));
+            SyncSelectedCodePageFromActiveTable();
             StatusMessage = "Tabla recargada desde disco.";
             NotifyCommands();
         }
@@ -408,7 +441,8 @@ public sealed class MainViewModel : ObservableObject
 
         try
         {
-            var sourceDocument = _dbfTableService.LoadTable(dialog.FileName);
+            var sourceForcedCodePage = ResolvePreferredCodePage(dialog.FileName);
+            var sourceDocument = _dbfTableService.LoadTable(dialog.FileName, sourceForcedCodePage);
             if (!_dbfTableService.AreCompatibleStructures(
                     SelectedOpenTable.Document.Fields,
                     sourceDocument.Fields,
@@ -436,6 +470,63 @@ public sealed class MainViewModel : ObservableObject
         {
             StatusMessage = $"Error al importar: {exception.Message}";
             MessageBox.Show(exception.Message, "Error de importacion", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void ApplyCodePageForCurrentTable()
+    {
+        if (SelectedOpenTable is null || SelectedCodePageOption is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _state.TableCodePages[SelectedOpenTable.FilePath] = SelectedCodePageOption.CodePage;
+            PersistState();
+
+            var document = _dbfTableService.LoadTable(SelectedOpenTable.FilePath, SelectedCodePageOption.CodePage);
+            var structure = _dbfTableService.DescribeFields(document.Fields);
+            SelectedOpenTable.ReplaceDocument(document, structure);
+
+            OnPropertyChanged(nameof(CurrentTableStructure));
+            OnPropertyChanged(nameof(CurrentTableHeaderInfo));
+            StatusMessage = $"Tabla recargada con codepage {SelectedCodePageOption.CodePage}.";
+            NotifyCommands();
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = $"Error al aplicar codepage: {exception.Message}";
+            MessageBox.Show(exception.Message, "Error de codepage", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void SaveCodePageToTableHeader()
+    {
+        if (SelectedOpenTable is null || SelectedCodePageOption?.LanguageDriver is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _dbfTableService.UpdateLanguageDriverByte(SelectedOpenTable.FilePath, SelectedCodePageOption.LanguageDriver.Value);
+            _state.TableCodePages[SelectedOpenTable.FilePath] = SelectedCodePageOption.CodePage;
+            PersistState();
+
+            var document = _dbfTableService.LoadTable(SelectedOpenTable.FilePath, SelectedCodePageOption.CodePage);
+            var structure = _dbfTableService.DescribeFields(document.Fields);
+            SelectedOpenTable.ReplaceDocument(document, structure);
+
+            OnPropertyChanged(nameof(CurrentTableStructure));
+            OnPropertyChanged(nameof(CurrentTableHeaderInfo));
+            StatusMessage = $"Codepage guardado en cabecera: {SelectedCodePageOption.Label}.";
+            NotifyCommands();
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = $"Error al guardar codepage: {exception.Message}";
+            MessageBox.Show(exception.Message, "Error de codepage", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -482,6 +573,7 @@ public sealed class MainViewModel : ObservableObject
         }
 
         OnPropertyChanged(nameof(CurrentTableStructure));
+        OnPropertyChanged(nameof(CurrentTableHeaderInfo));
         OnPropertyChanged(nameof(CurrentTableDisplayName));
         OnPropertyChanged(nameof(DirtyStatus));
         NotifyCommands();
@@ -539,7 +631,49 @@ public sealed class MainViewModel : ObservableObject
         (ReloadTableCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (SaveTableCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (ImportFromTableCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (ApplyCodePageCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (SaveCodePageToTableCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (CopyStructureCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (CloseSelectedTabCommand as RelayCommand)?.RaiseCanExecuteChanged();
+    }
+
+    private int? ResolvePreferredCodePage(string filePath)
+    {
+        return _state.TableCodePages.TryGetValue(filePath, out var preferredCodePage)
+            ? preferredCodePage
+            : null;
+    }
+
+    private void SyncSelectedCodePageFromActiveTable()
+    {
+        if (SelectedOpenTable is null)
+        {
+            SelectedCodePageOption = null;
+            return;
+        }
+
+        var codePage = SelectedOpenTable.Document.EffectiveCodePage;
+        SelectedCodePageOption = AvailableCodePages.FirstOrDefault(option => option.CodePage == codePage)
+            ?? AvailableCodePages.FirstOrDefault();
+    }
+
+    private static IReadOnlyList<CodePageOption> CreateCodePageOptions()
+    {
+        return
+        [
+            new CodePageOption { Label = "Win 1252 (0x03)", CodePage = 1252, LanguageDriver = 0x03 },
+            new CodePageOption { Label = "Win 1250 (0x58)", CodePage = 1250, LanguageDriver = 0x58 },
+            new CodePageOption { Label = "Win 1251 (0x59)", CodePage = 1251, LanguageDriver = 0x59 },
+            new CodePageOption { Label = "DOS 850 (0x02)", CodePage = 850, LanguageDriver = 0x02 },
+            new CodePageOption { Label = "DOS 437 (0x01)", CodePage = 437, LanguageDriver = 0x01 },
+            new CodePageOption { Label = "DOS 852 (0x64)", CodePage = 852, LanguageDriver = 0x64 },
+            new CodePageOption { Label = "DOS 866 (0x65)", CodePage = 866, LanguageDriver = 0x65 },
+            new CodePageOption { Label = "Shift-JIS 932 (0x7B)", CodePage = 932, LanguageDriver = 0x7B },
+            new CodePageOption { Label = "GBK 936 (0x7A)", CodePage = 936, LanguageDriver = 0x7A },
+            new CodePageOption { Label = "Korean 949 (0x79)", CodePage = 949, LanguageDriver = 0x79 },
+            new CodePageOption { Label = "Big5 950 (0x78)", CodePage = 950, LanguageDriver = 0x78 },
+            new CodePageOption { Label = "Thai 874 (0x7C)", CodePage = 874, LanguageDriver = 0x7C },
+            new CodePageOption { Label = "UTF-8 (solo vista)", CodePage = 65001, LanguageDriver = null }
+        ];
     }
 }

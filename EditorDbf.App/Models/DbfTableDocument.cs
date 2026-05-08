@@ -14,7 +14,11 @@ public sealed class DbfTableDocument
 
     public required Encoding Encoding { get; init; }
 
+    public required int EffectiveCodePage { get; init; }
+
     public required DBFField[] Fields { get; init; }
 
     public required DataTable DataTable { get; init; }
+
+    public required DbfHeaderInfo HeaderInfo { get; init; }
 }

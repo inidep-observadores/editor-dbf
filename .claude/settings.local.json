@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"D:\\\\Desarrollo\\\\_INIDEP\\\\OBS\\\\EditorDbf\\\\EditorDbf.App\" -Recurse -Include \"*.xaml\")",
+      "Bash(Select-Object FullName)",
+      "Bash(New-Item -ItemType Directory -Force -Path \"D:\\\\Desarrollo\\\\_INIDEP\\\\OBS\\\\EditorDbf\\\\EditorDbf.App\\\\Themes\")",
+      "Bash(Out-Null)",
+      "Bash(Write-Host \"OK\")",
+      "PowerShell(New-Item *)"
+    ]
+  }
+}

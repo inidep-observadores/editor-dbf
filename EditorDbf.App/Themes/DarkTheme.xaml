@@ -2,64 +2,66 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!-- Backgrounds -->
     <SolidColorBrush x:Key="AppBackgroundBrush"              Color="#1C1C1C"/>
-    <SolidColorBrush x:Key="LayerBackgroundBrush"            Color="#272727"/>
-    <SolidColorBrush x:Key="SubLayerBackgroundBrush"         Color="#202020"/>
-    <SolidColorBrush x:Key="ToolbarBackgroundBrush"          Color="#1E1E1E"/>
-    <SolidColorBrush x:Key="StatusBarBackgroundBrush"        Color="#171717"/>
+    <SolidColorBrush x:Key="LayerBackgroundBrush"            Color="#2D2D2D"/>
+    <SolidColorBrush x:Key="SubLayerBackgroundBrush"         Color="#363636"/>
+    <SolidColorBrush x:Key="ToolbarBackgroundBrush"          Color="#252525"/>
+    <SolidColorBrush x:Key="StatusBarBackgroundBrush"        Color="#1A1A1A"/>
 
     <!-- Borders -->
-    <SolidColorBrush x:Key="PanelBorderBrush"                Color="#393939"/>
-    <SolidColorBrush x:Key="DividerBrush"                    Color="#2E2E2E"/>
-    <SolidColorBrush x:Key="GridBorderBrush"                 Color="#333333"/>
-    <SolidColorBrush x:Key="ButtonBorderBrush"               Color="#404040"/>
-    <SolidColorBrush x:Key="ButtonHoverBorderBrush"          Color="#4A4A4A"/>
-    <SolidColorBrush x:Key="ButtonPressedBorderBrush"        Color="#545454"/>
+    <SolidColorBrush x:Key="PanelBorderBrush"                Color="#404040"/>
+    <SolidColorBrush x:Key="DividerBrush"                    Color="#454545"/>
+    <SolidColorBrush x:Key="GridBorderBrush"                 Color="#3D3D3D"/>
+    <SolidColorBrush x:Key="ButtonBorderBrush"               Color="#505050"/>
+    <SolidColorBrush x:Key="ButtonHoverBorderBrush"          Color="#606060"/>
+    <SolidColorBrush x:Key="ButtonPressedBorderBrush"        Color="#707070"/>
 
     <!-- Text -->
-    <SolidColorBrush x:Key="PrimaryTextBrush"                Color="#F2F2F2"/>
-    <SolidColorBrush x:Key="SecondaryTextBrush"              Color="#9E9E9E"/>
-    <SolidColorBrush x:Key="CaptionTextBrush"                Color="#6A6A6A"/>
-    <SolidColorBrush x:Key="DisabledTextBrush"               Color="#4A4A4A"/>
-    <SolidColorBrush x:Key="TextOnAccentBrush"               Color="#000000"/>
+    <SolidColorBrush x:Key="PrimaryTextBrush"                Color="#E0E0E0"/>
+    <SolidColorBrush x:Key="SecondaryTextBrush"              Color="#A0A0A0"/>
+    <SolidColorBrush x:Key="CaptionTextBrush"                Color="#707070"/>
+    <SolidColorBrush x:Key="DisabledTextBrush"               Color="#505050"/>
+    <SolidColorBrush x:Key="TextOnAccentBrush"               Color="#FFFFFF"/>
 
-    <!-- Accent (Windows light blue for dark theme) -->
+    <!-- Accent (Windows blue) -->
     <SolidColorBrush x:Key="AccentBrush"                     Color="#60CDFF"/>
-    <SolidColorBrush x:Key="AccentHoverBrush"                Color="#78D6FF"/>
-    <SolidColorBrush x:Key="AccentPressedBrush"              Color="#48C0F5"/>
-    <SolidColorBrush x:Key="AccentSubtleBrush"               Color="#1A3A52"/>
+    <SolidColorBrush x:Key="AccentHoverBrush"                Color="#76D5FF"/>
+    <SolidColorBrush x:Key="AccentPressedBrush"              Color="#4BAED9"/>
+    <SolidColorBrush x:Key="AccentSubtleBrush"               Color="#1A3E4F"/>
 
     <!-- Buttons -->
-    <SolidColorBrush x:Key="ButtonBackgroundBrush"           Color="#2D2D2D"/>
-    <SolidColorBrush x:Key="ButtonHoverBackgroundBrush"      Color="#373737"/>
-    <SolidColorBrush x:Key="ButtonPressedBackgroundBrush"    Color="#424242"/>
+    <SolidColorBrush x:Key="ButtonBackgroundBrush"           Color="#3D3D3D"/>
+    <SolidColorBrush x:Key="ButtonHoverBackgroundBrush"      Color="#454545"/>
+    <SolidColorBrush x:Key="ButtonPressedBackgroundBrush"    Color="#333333"/>
 
     <!-- Lists -->
-    <SolidColorBrush x:Key="ListItemHoverBackgroundBrush"    Color="#303030"/>
-    <SolidColorBrush x:Key="ListItemSelectedBackgroundBrush" Color="#1A3A58"/>
-    <SolidColorBrush x:Key="ListItemSelectedTextBrush"       Color="#F2F2F2"/>
+    <SolidColorBrush x:Key="ListItemHoverBackgroundBrush"    Color="#404040"/>
+    <SolidColorBrush x:Key="ListItemSelectedBackgroundBrush" Color="#1A3E4F"/>
+    <SolidColorBrush x:Key="ListItemSelectedTextBrush"       Color="#FFFFFF"/>
     <SolidColorBrush x:Key="ListItemSelectedAccentBrush"     Color="#60CDFF"/>
 
     <!-- Data grid -->
-    <SolidColorBrush x:Key="GridHeaderBackgroundBrush"       Color="#222222"/>
-    <SolidColorBrush x:Key="GridAltRowBackgroundBrush"       Color="#252525"/>
-    <SolidColorBrush x:Key="GridRowHoverBackgroundBrush"     Color="#1C3040"/>
-    <SolidColorBrush x:Key="GridSelectedRowBrush"            Color="#1A3A58"/>
+    <SolidColorBrush x:Key="GridHeaderBackgroundBrush"       Color="#333333"/>
+    <SolidColorBrush x:Key="GridAltRowBackgroundBrush"       Color="#313131"/>
+    <SolidColorBrush x:Key="GridRowHoverBackgroundBrush"     Color="#3D3D3D"/>
+    <SolidColorBrush x:Key="GridSelectedRowBrush"            Color="#1A3E4F"/>
 
     <!-- Tabs -->
-    <SolidColorBrush x:Key="TabStripBackgroundBrush"         Color="#1E1E1E"/>
-    <SolidColorBrush x:Key="TabItemHoverBackgroundBrush"     Color="#2E2E2E"/>
-    <SolidColorBrush x:Key="TabItemSelectedBackgroundBrush"  Color="#272727"/>
+    <SolidColorBrush x:Key="TabStripBackgroundBrush"         Color="#252525"/>
+    <SolidColorBrush x:Key="TabItemHoverBackgroundBrush"     Color="#363636"/>
+    <SolidColorBrush x:Key="TabItemSelectedBackgroundBrush"  Color="#2D2D2D"/>
     <SolidColorBrush x:Key="TabItemSelectedBorderBrush"      Color="#60CDFF"/>
 
     <!-- State -->
     <SolidColorBrush x:Key="DangerBrush"                     Color="#FF8C8C"/>
-    <SolidColorBrush x:Key="DangerHoverBrush"                Color="#FF9E9E"/>
-    <SolidColorBrush x:Key="DangerPressedBrush"              Color="#F07070"/>
+    <SolidColorBrush x:Key="DangerHoverBackgroundBrush"      Color="#3D2020"/>
+    <SolidColorBrush x:Key="DangerHoverBrush"                Color="#FF9999"/>
+    <SolidColorBrush x:Key="DangerPressedBrush"              Color="#FF7070"/>
     <SolidColorBrush x:Key="DangerForegroundBrush"           Color="#1C1C1C"/>
-    <SolidColorBrush x:Key="SuccessBrush"                    Color="#6CCB6C"/>
+    <SolidColorBrush x:Key="DangerTextBrush"                 Color="#FF8C8C"/>
+    <SolidColorBrush x:Key="SuccessBrush"                    Color="#6CCB5F"/>
     <SolidColorBrush x:Key="SuccessForegroundBrush"          Color="#1C1C1C"/>
-    <SolidColorBrush x:Key="WarnBrush"                       Color="#FFB84D"/>
+    <SolidColorBrush x:Key="WarnBrush"                       Color="#FFB900"/>
 
-    <!-- Shadow is invisible in dark theme -->
-    <Color x:Key="ShadowColor">#00000000</Color>
+    <!-- Shadow for cards -->
+    <Color x:Key="ShadowColor">#FF000000</Color>
 </ResourceDictionary>

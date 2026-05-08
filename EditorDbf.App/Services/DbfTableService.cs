@@ -25,9 +25,14 @@ public sealed class DbfTableService
             .ToList()!;
     }
 
-    public DbfTableDocument LoadTable(string filePath)
+    public DbfTableDocument LoadTable(string filePath, int? forcedCodePage = null)
     {
         using var reader = new DBFReader(filePath);
+        if (forcedCodePage.HasValue)
+        {
+            reader.CharEncoding = TryGetEncoding(forcedCodePage.Value);
+        }
+
         var fields = reader.Fields ?? [];
         var table = BuildDataTable(filePath, fields);
 
@@ -52,19 +57,26 @@ public sealed class DbfTableService
 
         var signature = ReadHeaderByte(filePath, 0);
         var languageDriver = ReadHeaderByte(filePath, 29);
+        var headerInfo = ReadHeaderInfo(filePath, fields.Length, reader.RecordCount, signature, languageDriver);
+
+        var effectiveEncoding = forcedCodePage.HasValue
+            ? TryGetEncoding(forcedCodePage.Value)
+            : reader.CharEncoding ?? CultureInfo.CurrentCulture.TextInfo.ANSICodePage switch
+            {
+                > 0 and var codePage => TryGetEncoding(codePage),
+                _ => Encoding.GetEncoding(1252)
+            };
 
         return new DbfTableDocument
         {
             FilePath = filePath,
             Signature = signature,
             LanguageDriver = languageDriver,
-            Encoding = reader.CharEncoding ?? CultureInfo.CurrentCulture.TextInfo.ANSICodePage switch
-            {
-                > 0 and var codePage => Encoding.GetEncoding(codePage),
-                _ => Encoding.GetEncoding(1252)
-            },
+            Encoding = effectiveEncoding,
+            EffectiveCodePage = effectiveEncoding.CodePage,
             Fields = fields,
-            DataTable = table
+            DataTable = table,
+            HeaderInfo = headerInfo
         };
     }
 
@@ -180,6 +192,52 @@ public sealed class DbfTableService
         return true;
     }
 
+    public void UpdateLanguageDriverByte(string filePath, byte languageDriver)
+    {
+        using var stream = File.Open(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+        stream.Seek(29, SeekOrigin.Begin);
+        stream.WriteByte(languageDriver);
+        stream.Flush();
+    }
+
+    public static int? GuessCodePageFromLanguageDriver(byte languageDriver)
+    {
+        return languageDriver switch
+        {
+            0x00 => null,
+            0x01 => 437,
+            0x02 => 850,
+            0x03 => 1252,
+            0x57 => 1252,
+            0x58 => 1250,
+            0x59 => 1251,
+            0x64 => 852,
+            0x65 => 866,
+            0x66 => 865,
+            0x67 => 861,
+            0x6A => 737,
+            0x6B => 857,
+            0x78 => 950,
+            0x79 => 949,
+            0x7A => 936,
+            0x7B => 932,
+            0x7C => 874,
+            _ => null
+        };
+    }
+
+    private static Encoding TryGetEncoding(int codePage)
+    {
+        try
+        {
+            return Encoding.GetEncoding(codePage);
+        }
+        catch
+        {
+            return Encoding.GetEncoding(1252);
+        }
+    }
+
     private static DataTable BuildDataTable(string filePath, IEnumerable<DBFField> fields)
     {
         var table = new DataTable(Path.GetFileName(filePath));
@@ -259,5 +317,95 @@ public sealed class DbfTableService
         stream.Seek(offset, SeekOrigin.Begin);
         var read = stream.ReadByte();
         return read < 0 ? (byte)0 : (byte)read;
+    }
+
+    private static DbfHeaderInfo ReadHeaderInfo(
+        string filePath,
+        int fieldCount,
+        int recordCount,
+        byte signature,
+        byte languageDriver)
+    {
+        using var stream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var reader = new BinaryReader(stream);
+
+        stream.Seek(1, SeekOrigin.Begin);
+        var year = reader.ReadByte() + 1900;
+        var month = reader.ReadByte();
+        var day = reader.ReadByte();
+
+        stream.Seek(8, SeekOrigin.Begin);
+        var headerSize = reader.ReadUInt16();
+        var recordSize = reader.ReadUInt16();
+
+        DateTime? lastUpdated = null;
+        if (month is >= 1 and <= 12 && day is >= 1 and <= 31)
+        {
+            try
+            {
+                lastUpdated = new DateTime(year, month, day);
+            }
+            catch
+            {
+                lastUpdated = null;
+            }
+        }
+
+        return new DbfHeaderInfo
+        {
+            RecordCount = recordCount,
+            FieldCount = fieldCount,
+            HeaderSize = headerSize,
+            RecordSize = recordSize,
+            LastUpdated = lastUpdated,
+            LanguageCodeDescription = DescribeLanguageDriver(languageDriver),
+            FileTypeDescription = DescribeSignature(signature),
+            FullPath = filePath
+        };
+    }
+
+    private static string DescribeSignature(byte signature)
+    {
+        return signature switch
+        {
+            0x02 => "FoxBASE",
+            0x03 => "dBASE III",
+            0x30 => "Visual FoxPro",
+            0x31 => "Visual FoxPro (autoincremento)",
+            0x32 => "Visual FoxPro (varchar/varbinary)",
+            0x43 => "dBASE IV SQL",
+            0x63 => "dBASE IV con memo",
+            0x83 => "dBASE III con memo",
+            0x8B => "dBASE IV con memo",
+            0xCB => "dBASE IV SQL con memo",
+            0xF5 => "FoxPro con memo",
+            _ => $"Desconocido (0x{signature:X2})"
+        };
+    }
+
+    private static string DescribeLanguageDriver(byte languageDriver)
+    {
+        return languageDriver switch
+        {
+            0x00 => "Sin codepage definido (0x00)",
+            0x01 => "DOS 437 USA (0x01)",
+            0x02 => "DOS 850 Multilenguaje (0x02)",
+            0x03 => "Windows ANSI 1252 (0x03)",
+            0x57 => "Windows ANSI 1252 (0x57)",
+            0x58 => "Windows ANSI 1250 (0x58)",
+            0x59 => "Windows ANSI 1251 (0x59)",
+            0x64 => "DOS 852 Europa Central (0x64)",
+            0x65 => "DOS 866 Ruso (0x65)",
+            0x66 => "DOS 865 Nórdico (0x66)",
+            0x67 => "DOS 861 Islandés (0x67)",
+            0x6A => "DOS 737 Griego (0x6A)",
+            0x6B => "DOS 857 Turco (0x6B)",
+            0x78 => "Windows ANSI 950 Chino Tradicional (0x78)",
+            0x79 => "Windows ANSI 949 Coreano (0x79)",
+            0x7A => "Windows ANSI 936 Chino Simplificado (0x7A)",
+            0x7B => "Windows ANSI 932 Japonés (0x7B)",
+            0x7C => "Windows ANSI 874 Tailandés (0x7C)",
+            _ => $"Codepage no mapeado (0x{languageDriver:X2})"
+        };
     }
 }

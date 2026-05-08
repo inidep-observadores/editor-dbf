@@ -53,9 +53,11 @@
 
     <!-- State -->
     <SolidColorBrush x:Key="DangerBrush"                     Color="#C42B1C"/>
+    <SolidColorBrush x:Key="DangerHoverBackgroundBrush"      Color="#FDE7E9"/>
     <SolidColorBrush x:Key="DangerHoverBrush"                Color="#D44030"/>
     <SolidColorBrush x:Key="DangerPressedBrush"              Color="#A82315"/>
     <SolidColorBrush x:Key="DangerForegroundBrush"           Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="DangerTextBrush"                 Color="#C42B1C"/>
     <SolidColorBrush x:Key="SuccessBrush"                    Color="#107C10"/>
     <SolidColorBrush x:Key="SuccessForegroundBrush"          Color="#FFFFFF"/>
     <SolidColorBrush x:Key="WarnBrush"                       Color="#9D5D00"/>

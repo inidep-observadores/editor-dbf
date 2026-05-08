@@ -5,6 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="Editor DBF"
+        Icon="Assets/app_icon.png"
+        WindowState="Maximized"
         Height="900"
         Width="1500"
         MinHeight="720"
@@ -172,7 +174,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="240" MinWidth="140"/>
                 <ColumnDefinition Width="6"/>
-                <ColumnDefinition Width="310" MinWidth="340"/>
+                <ColumnDefinition Width="380" MinWidth="360"/>
                 <ColumnDefinition Width="6"/>
                 <ColumnDefinition Width="*" MinWidth="320"/>
             </Grid.ColumnDefinitions>
@@ -414,7 +416,7 @@
                                             ToolTip="Reabrir tabla con este código de página"
                                             Width="28" Height="28" Padding="0"
                                             Margin="4,0,0,0">
-                                        <TextBlock Text="&#xE71C;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                        <TextBlock Text="&#xE777;" FontFamily="Segoe MDL2 Assets" FontSize="13"
                                                    VerticalAlignment="Center" HorizontalAlignment="Center"/>
                                     </Button>
                                 </StackPanel>
@@ -429,7 +431,7 @@
                                     <ComboBox ItemsSource="{Binding AvailableCodePages}"
                                               SelectedItem="{Binding SelectedCodePageOption, Mode=TwoWay}"
                                               DisplayMemberPath="Label"
-                                              MinWidth="160"/>
+                                              Width="145"/>
                                 </StackPanel>
                             </DockPanel>
                         </Border>
