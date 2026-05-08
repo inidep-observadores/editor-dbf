@@ -142,7 +142,7 @@ public sealed class DbfTableService
     {
         if (targetFields.Length != sourceFields.Length)
         {
-            reason = $"field count differs ({targetFields.Length} vs {sourceFields.Length}).";
+            reason = $"la cantidad de campos difiere ({targetFields.Length} vs {sourceFields.Length}).";
             return false;
         }
 
@@ -153,25 +153,25 @@ public sealed class DbfTableService
 
             if (!string.Equals(target.Name, source.Name, StringComparison.OrdinalIgnoreCase))
             {
-                reason = $"field #{index + 1} name differs ({target.Name} vs {source.Name}).";
+                reason = $"el nombre del campo #{index + 1} difiere ({target.Name} vs {source.Name}).";
                 return false;
             }
 
             if (target.DataType != source.DataType)
             {
-                reason = $"field '{target.Name}' type differs ({target.DataType} vs {source.DataType}).";
+                reason = $"el tipo del campo '{target.Name}' difiere ({target.DataType} vs {source.DataType}).";
                 return false;
             }
 
             if (target.FieldLength != source.FieldLength)
             {
-                reason = $"field '{target.Name}' length differs ({target.FieldLength} vs {source.FieldLength}).";
+                reason = $"la longitud del campo '{target.Name}' difiere ({target.FieldLength} vs {source.FieldLength}).";
                 return false;
             }
 
             if (target.DecimalCount != source.DecimalCount)
             {
-                reason = $"field '{target.Name}' decimals differs ({target.DecimalCount} vs {source.DecimalCount}).";
+                reason = $"los decimales del campo '{target.Name}' difieren ({target.DecimalCount} vs {source.DecimalCount}).";
                 return false;
             }
         }

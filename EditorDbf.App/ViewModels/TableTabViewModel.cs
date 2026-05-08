@@ -13,7 +13,7 @@ namespace EditorDbf.App.ViewModels;
 
 public sealed class TableTabViewModel : ObservableObject
 {
-    private static readonly string[] FilterOperatorsCatalog = ["=", "<>", ">", "<", "LIKE", "IS EMPTY", "IS NOT EMPTY"];
+    private static readonly string[] FilterOperatorsCatalog = ["=", "<>", ">", "<", "CONTIENE", "VACIO", "NO VACIO"];
 
     private DbfTableDocument _document;
     private DataRowView? _selectedRecord;
@@ -21,7 +21,7 @@ public sealed class TableTabViewModel : ObservableObject
     private string? _selectedFilterColumn;
     private string _selectedFilterOperator = "=";
     private string _filterValue = string.Empty;
-    private string _currentFilterText = "(no filter)";
+    private string _currentFilterText = "(sin filtro)";
     private readonly List<DataRowView> _selectedRecords = [];
 
     public TableTabViewModel(
@@ -217,7 +217,7 @@ public sealed class TableTabViewModel : ObservableObject
         SelectedFilterColumn = FilterColumns.FirstOrDefault();
         SelectedFilterOperator = "=";
         FilterValue = string.Empty;
-        CurrentFilterText = "(no filter)";
+        CurrentFilterText = "(sin filtro)";
         _document.DataTable.DefaultView.RowFilter = string.Empty;
         SelectedRecord = null;
         _selectedRecords.Clear();
@@ -274,14 +274,14 @@ public sealed class TableTabViewModel : ObservableObject
 
         var expression = BuildFilterExpression(column, SelectedFilterOperator, FilterValue);
         _document.DataTable.DefaultView.RowFilter = expression;
-        CurrentFilterText = string.IsNullOrWhiteSpace(expression) ? "(no filter)" : expression;
+        CurrentFilterText = string.IsNullOrWhiteSpace(expression) ? "(sin filtro)" : expression;
     }
 
     private void ClearFilter()
     {
         _document.DataTable.DefaultView.RowFilter = string.Empty;
         FilterValue = string.Empty;
-        CurrentFilterText = "(no filter)";
+        CurrentFilterText = "(sin filtro)";
     }
 
     private void SubscribeToDataTable()
@@ -324,7 +324,7 @@ public sealed class TableTabViewModel : ObservableObject
 
     private static bool OperatorNeedsValue(string filterOperator)
     {
-        return filterOperator is "=" or "<>" or ">" or "<" or "LIKE";
+        return filterOperator is "=" or "<>" or ">" or "<" or "CONTIENE";
     }
 
     private static string BuildFilterExpression(DataColumn column, string filterOperator, string rawValue)
@@ -334,13 +334,13 @@ public sealed class TableTabViewModel : ObservableObject
 
         return filterOperator switch
         {
-            "IS EMPTY" => column.DataType == typeof(string)
+            "VACIO" => column.DataType == typeof(string)
                 ? $"{safeColumn} IS NULL OR {safeColumn} = ''"
                 : $"{safeColumn} IS NULL",
-            "IS NOT EMPTY" => column.DataType == typeof(string)
+            "NO VACIO" => column.DataType == typeof(string)
                 ? $"{safeColumn} IS NOT NULL AND {safeColumn} <> ''"
                 : $"{safeColumn} IS NOT NULL",
-            "LIKE" => $"Convert({safeColumn}, 'System.String') LIKE '%{EscapeStringLiteral(value)}%'",
+            "CONTIENE" => $"Convert({safeColumn}, 'System.String') LIKE '%{EscapeStringLiteral(value)}%'",
             "=" or "<>" or ">" or "<" => $"{safeColumn} {filterOperator} {BuildLiteral(column.DataType, value)}",
             _ => string.Empty
         };
@@ -357,14 +357,14 @@ public sealed class TableTabViewModel : ObservableObject
         {
             return bool.TryParse(value, out var boolValue)
                 ? (boolValue ? "TRUE" : "FALSE")
-                : throw new InvalidOperationException("Boolean values must be true or false.");
+                : throw new InvalidOperationException("Los valores booleanos deben ser true o false.");
         }
 
         if (dataType == typeof(DateTime))
         {
             if (!DateTime.TryParse(value, out var dateValue))
             {
-                throw new InvalidOperationException("Date values must be valid (example: 2026-05-08).");
+                throw new InvalidOperationException("Las fechas deben ser validas (ejemplo: 2026-05-08).");
             }
 
             return $"#{dateValue:MM/dd/yyyy HH:mm:ss}#";
@@ -374,21 +374,21 @@ public sealed class TableTabViewModel : ObservableObject
         {
             return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var intValue)
                 ? intValue.ToString(CultureInfo.InvariantCulture)
-                : throw new InvalidOperationException("Integer value expected.");
+                : throw new InvalidOperationException("Se esperaba un numero entero.");
         }
 
         if (dataType == typeof(decimal))
         {
             return decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var decimalValue)
                 ? decimalValue.ToString(CultureInfo.InvariantCulture)
-                : throw new InvalidOperationException("Decimal value expected. Use dot as separator.");
+                : throw new InvalidOperationException("Se esperaba un valor decimal. Usa punto como separador.");
         }
 
         if (dataType == typeof(double))
         {
             return double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var doubleValue)
                 ? doubleValue.ToString(CultureInfo.InvariantCulture)
-                : throw new InvalidOperationException("Numeric value expected. Use dot as separator.");
+                : throw new InvalidOperationException("Se esperaba un valor numerico. Usa punto como separador.");
         }
 
         return $"'{EscapeStringLiteral(value)}'";

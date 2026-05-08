@@ -22,7 +22,7 @@ public sealed class MainViewModel : ObservableObject
     private ConnectionProfile? _selectedConnection;
     private string? _selectedDbfFile;
     private TableTabViewModel? _selectedOpenTable;
-    private string _statusMessage = "Ready.";
+    private string _statusMessage = "Listo.";
 
     public MainViewModel(ConnectionRepository connectionRepository, DbfTableService dbfTableService)
     {
@@ -136,9 +136,9 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    public string CurrentTableDisplayName => SelectedOpenTable is null ? "(none)" : SelectedOpenTable.FileName;
+    public string CurrentTableDisplayName => SelectedOpenTable is null ? "(ninguna)" : SelectedOpenTable.FileName;
 
-    public string DirtyStatus => SelectedOpenTable?.HasPendingChanges == true ? "Pending changes" : "No changes";
+    public string DirtyStatus => SelectedOpenTable?.HasPendingChanges == true ? "Cambios pendientes" : "Sin cambios";
 
     public IReadOnlyList<DbfFieldDescriptor> CurrentTableStructure => SelectedOpenTable?.TableStructure ?? [];
 
@@ -152,7 +152,7 @@ public sealed class MainViewModel : ObservableObject
     {
         var dialog = new OpenFolderDialog
         {
-            Title = "Select folder with DBF files",
+            Title = "Seleccionar carpeta con archivos DBF",
             Multiselect = false
         };
 
@@ -173,7 +173,7 @@ public sealed class MainViewModel : ObservableObject
         if (existing is not null)
         {
             SelectedConnection = existing;
-            StatusMessage = "Connection already exists and was selected.";
+            StatusMessage = "La conexion ya existe y fue seleccionada.";
             return;
         }
 
@@ -188,7 +188,7 @@ public sealed class MainViewModel : ObservableObject
         PersistState();
 
         SelectedConnection = connection;
-        StatusMessage = $"Connection created: {connection.DisplayName}";
+        StatusMessage = $"Conexion creada: {connection.DisplayName}";
     }
 
     private void RemoveConnection()
@@ -199,8 +199,8 @@ public sealed class MainViewModel : ObservableObject
         }
 
         var confirm = MessageBox.Show(
-            $"Delete connection '{SelectedConnection.DisplayName}'?",
-            "Confirm delete connection",
+            $"¿Eliminar la conexion '{SelectedConnection.DisplayName}'?",
+            "Confirmar eliminacion de conexion",
             MessageBoxButton.YesNo,
             MessageBoxImage.Question);
 
@@ -220,7 +220,7 @@ public sealed class MainViewModel : ObservableObject
 
         PersistState();
         SelectedConnection = Connections.FirstOrDefault();
-        StatusMessage = "Connection deleted.";
+        StatusMessage = "Conexion eliminada.";
     }
 
     private void RefreshFiles()
@@ -230,7 +230,7 @@ public sealed class MainViewModel : ObservableObject
 
         if (SelectedConnection is null)
         {
-            StatusMessage = "Select a connection to list DBF files.";
+            StatusMessage = "Selecciona una conexion para listar archivos DBF.";
             return;
         }
 
@@ -240,8 +240,8 @@ public sealed class MainViewModel : ObservableObject
         }
 
         StatusMessage = DbfFiles.Count == 0
-            ? "No DBF files were found in the selected folder."
-            : $"{DbfFiles.Count} DBF files found.";
+            ? "No se encontraron archivos DBF en la carpeta seleccionada."
+            : $"Se encontraron {DbfFiles.Count} archivos DBF.";
 
         NotifyCommands();
     }
@@ -260,7 +260,7 @@ public sealed class MainViewModel : ObservableObject
         if (existingTab is not null)
         {
             SelectedOpenTable = existingTab;
-            StatusMessage = $"Tab focused: {existingTab.FileName}";
+            StatusMessage = $"Pestana enfocada: {existingTab.FileName}";
             return;
         }
 
@@ -272,12 +272,12 @@ public sealed class MainViewModel : ObservableObject
 
             OpenTables.Add(tab);
             SelectedOpenTable = tab;
-            StatusMessage = $"Table opened: {Path.GetFileName(filePath)} ({document.DataTable.Rows.Count} rows).";
+            StatusMessage = $"Tabla abierta: {Path.GetFileName(filePath)} ({document.DataTable.Rows.Count} registros).";
         }
         catch (Exception exception)
         {
-            StatusMessage = $"Open failed: {exception.Message}";
-            MessageBox.Show(exception.Message, "Open DBF error", MessageBoxButton.OK, MessageBoxImage.Error);
+            StatusMessage = $"Error al abrir: {exception.Message}";
+            MessageBox.Show(exception.Message, "Error al abrir DBF", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -289,7 +289,7 @@ public sealed class MainViewModel : ObservableObject
         }
 
         SelectedOpenTable.AddRecord();
-        StatusMessage = "Row added.";
+        StatusMessage = "Registro agregado.";
         NotifyCommands();
         OnPropertyChanged(nameof(DirtyStatus));
     }
@@ -304,7 +304,7 @@ public sealed class MainViewModel : ObservableObject
         var deleted = SelectedOpenTable.DeleteSelectedRecords();
         if (deleted > 0)
         {
-            StatusMessage = deleted == 1 ? "1 row marked for delete." : $"{deleted} rows marked for delete.";
+            StatusMessage = deleted == 1 ? "1 registro marcado para borrar." : $"{deleted} registros marcados para borrar.";
             NotifyCommands();
             OnPropertyChanged(nameof(DirtyStatus));
         }
@@ -320,8 +320,8 @@ public sealed class MainViewModel : ObservableObject
         if (SelectedOpenTable.HasPendingChanges)
         {
             var confirmReload = MessageBox.Show(
-                "There are unsaved changes in this table. Reload and discard them?",
-                "Confirm reload",
+                "Hay cambios sin guardar en esta tabla. ¿Recargar y descartarlos?",
+                "Confirmar recarga",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning);
 
@@ -339,13 +339,13 @@ public sealed class MainViewModel : ObservableObject
             SelectedOpenTable.ReplaceDocument(document, structure);
             OnPropertyChanged(nameof(CurrentTableStructure));
             OnPropertyChanged(nameof(DirtyStatus));
-            StatusMessage = "Table reloaded from disk.";
+            StatusMessage = "Tabla recargada desde disco.";
             NotifyCommands();
         }
         catch (Exception exception)
         {
-            StatusMessage = $"Reload failed: {exception.Message}";
-            MessageBox.Show(exception.Message, "Reload error", MessageBoxButton.OK, MessageBoxImage.Error);
+            StatusMessage = $"Error al recargar: {exception.Message}";
+            MessageBox.Show(exception.Message, "Error al recargar", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -361,13 +361,13 @@ public sealed class MainViewModel : ObservableObject
             _dbfTableService.SaveTable(SelectedOpenTable.Document);
             SelectedOpenTable.MarkSaved();
             OnPropertyChanged(nameof(DirtyStatus));
-            StatusMessage = "Changes saved to DBF.";
+            StatusMessage = "Cambios guardados en DBF.";
             NotifyCommands();
         }
         catch (Exception exception)
         {
-            StatusMessage = $"Save failed: {exception.Message}";
-            MessageBox.Show(exception.Message, "Save error", MessageBoxButton.OK, MessageBoxImage.Error);
+            StatusMessage = $"Error al guardar: {exception.Message}";
+            MessageBox.Show(exception.Message, "Error al guardar", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -380,8 +380,8 @@ public sealed class MainViewModel : ObservableObject
 
         var dialog = new OpenFileDialog
         {
-            Title = "Select source DBF to APPEND FROM",
-            Filter = "DBF files (*.dbf)|*.dbf",
+            Title = "Seleccionar DBF de origen para APPEND FROM",
+            Filter = "Archivos DBF (*.dbf)|*.dbf",
             CheckFileExists = true,
             Multiselect = false
         };
@@ -400,27 +400,27 @@ public sealed class MainViewModel : ObservableObject
                     out var mismatchReason))
             {
                 MessageBox.Show(
-                    $"Import rejected. Incompatible structure: {mismatchReason}",
+                    $"Importacion rechazada. Estructura incompatible: {mismatchReason}",
                     "APPEND FROM",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
-                StatusMessage = "Import rejected by structure mismatch.";
+                StatusMessage = "Importacion rechazada por incompatibilidad de estructura.";
                 return;
             }
 
             var sourceRows = sourceDocument.DataTable.Rows.Count;
             SelectedOpenTable.AppendRowsFrom(sourceDocument.DataTable);
             StatusMessage = sourceRows == 1
-                ? "1 row imported using APPEND FROM."
-                : $"{sourceRows} rows imported using APPEND FROM.";
+                ? "1 registro importado con APPEND FROM."
+                : $"{sourceRows} registros importados con APPEND FROM.";
 
             OnPropertyChanged(nameof(DirtyStatus));
             NotifyCommands();
         }
         catch (Exception exception)
         {
-            StatusMessage = $"Import failed: {exception.Message}";
-            MessageBox.Show(exception.Message, "Import error", MessageBoxButton.OK, MessageBoxImage.Error);
+            StatusMessage = $"Error al importar: {exception.Message}";
+            MessageBox.Show(exception.Message, "Error de importacion", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -433,7 +433,7 @@ public sealed class MainViewModel : ObservableObject
 
         var lines = new List<string>
         {
-            "Name\tType\tLength\tDecimals"
+            "Nombre\tTipo\tLongitud\tDecimales"
         };
 
         foreach (var field in SelectedOpenTable.TableStructure)
@@ -442,7 +442,7 @@ public sealed class MainViewModel : ObservableObject
         }
 
         Clipboard.SetText(string.Join(Environment.NewLine, lines));
-        StatusMessage = "Table structure copied to clipboard.";
+        StatusMessage = "Estructura de tabla copiada al portapapeles.";
     }
 
     private void CloseSelectedTab()
