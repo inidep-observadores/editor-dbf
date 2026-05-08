@@ -8,117 +8,332 @@
         Height="900"
         Width="1500"
         MinHeight="720"
-        MinWidth="1200">
-    <Grid Margin="10">
+        MinWidth="1200"
+        FontFamily="Segoe UI Variable Text, Segoe UI, sans-serif"
+        FontSize="13"
+        Background="{DynamicResource AppBackgroundBrush}"
+        Foreground="{DynamicResource PrimaryTextBrush}">
+
+    <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto"/>  <!-- Toolbar -->
+            <RowDefinition Height="*"/>     <!-- Contenido principal -->
+            <RowDefinition Height="Auto"/>  <!-- Status bar -->
         </Grid.RowDefinitions>
 
-        <ToolBar Grid.Row="0"
-                 Margin="0,0,0,10"
-                 Background="#F4F4F4">
-            <Button Content="Nueva conexion"
-                    Margin="0,0,5,0"
-                    Command="{Binding AddConnectionCommand}" />
-            <Button Content="Eliminar conexion"
-                    Margin="0,0,5,0"
-                    Command="{Binding RemoveConnectionCommand}" />
-            <Separator />
-            <Button Content="Actualizar archivos"
-                    Margin="5,0,5,0"
-                    Command="{Binding RefreshFilesCommand}" />
-            <Button Content="Abrir DBF"
-                    Margin="0,0,5,0"
-                    Command="{Binding OpenTableCommand}" />
-            <Button Content="Cerrar tab"
-                    Margin="0,0,5,0"
-                    Command="{Binding CloseSelectedTabCommand}" />
-            <Separator />
-            <Button Content="Agregar registro"
-                    Margin="5,0,5,0"
-                    Command="{Binding AddRecordCommand}" />
-            <Button Content="Borrar registro"
-                    Margin="0,0,5,0"
-                    Command="{Binding DeleteSelectedRecordCommand}" />
-            <Button Content="Recargar"
-                    Margin="0,0,5,0"
-                    Command="{Binding ReloadTableCommand}" />
-            <Button Content="Guardar cambios"
-                    Margin="0,0,5,0"
-                    Command="{Binding SaveTableCommand}" />
-            <Button Content="Importar (APPEND FROM)"
-                    Margin="0,0,5,0"
-                    Command="{Binding ImportFromTableCommand}" />
-        </ToolBar>
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!--  TOOLBAR                                                         -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <Border Grid.Row="0"
+                Background="{DynamicResource ToolbarBackgroundBrush}"
+                BorderBrush="{DynamicResource PanelBorderBrush}"
+                BorderThickness="0,0,0,1">
+            <DockPanel Margin="8,4">
 
-        <Grid Grid.Row="1">
+                <!-- Botón toggle de tema (derecha) -->
+                <Button DockPanel.Dock="Right"
+                        Style="{StaticResource IconButtonStyle}"
+                        Command="{Binding ToggleThemeCommand}"
+                        Margin="0,0,2,0"
+                        Width="32" Height="32" Padding="0">
+                    <Button.ToolTip>
+                        <ToolTip>
+                            <TextBlock x:Name="ThemeTooltipText" Text="Cambiar tema"/>
+                        </ToolTip>
+                    </Button.ToolTip>
+                    <TextBlock x:Name="ThemeIcon"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="15"
+                               Text="&#xE708;"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Center"/>
+                </Button>
+
+                <!-- Grupo: Tabla y registros -->
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+
+                    <!-- Conexiones -->
+                    <Button Command="{Binding AddConnectionCommand}"
+                            ToolTip="Nueva conexión"
+                            Margin="0,0,4,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE8FA;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                       VerticalAlignment="Center" Margin="0,0,5,0"/>
+                            <TextBlock Text="Nueva conexión" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Command="{Binding RemoveConnectionCommand}"
+                            Style="{StaticResource DangerButtonStyle}"
+                            ToolTip="Eliminar conexión seleccionada"
+                            Margin="0,0,4,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                       VerticalAlignment="Center" Margin="0,0,5,0"/>
+                            <TextBlock Text="Eliminar" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Separator/>
+
+                    <!-- Archivos -->
+                    <Button Command="{Binding RefreshFilesCommand}"
+                            Style="{StaticResource IconButtonStyle}"
+                            ToolTip="Actualizar lista de archivos"
+                            Width="32" Height="32" Padding="0"
+                            Margin="0,0,4,0">
+                        <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="15"
+                                   VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    </Button>
+
+                    <Button Command="{Binding OpenTableCommand}"
+                            ToolTip="Abrir archivo DBF seleccionado"
+                            Margin="0,0,4,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                       VerticalAlignment="Center" Margin="0,0,5,0"/>
+                            <TextBlock Text="Abrir DBF" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Command="{Binding CloseSelectedTabCommand}"
+                            Style="{StaticResource IconButtonStyle}"
+                            ToolTip="Cerrar pestaña activa"
+                            Width="32" Height="32" Padding="0"
+                            Margin="0,0,4,0">
+                        <TextBlock Text="&#xE8BB;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                   VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    </Button>
+
+                    <Separator/>
+
+                    <!-- Registros -->
+                    <Button Command="{Binding AddRecordCommand}"
+                            ToolTip="Agregar nuevo registro"
+                            Margin="0,0,4,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                       VerticalAlignment="Center" Margin="0,0,5,0"/>
+                            <TextBlock Text="Agregar" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Command="{Binding DeleteSelectedRecordCommand}"
+                            Style="{StaticResource DangerButtonStyle}"
+                            ToolTip="Borrar registros seleccionados"
+                            Margin="0,0,4,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xECC9;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                       VerticalAlignment="Center" Margin="0,0,5,0"/>
+                            <TextBlock Text="Borrar" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Command="{Binding ReloadTableCommand}"
+                            Style="{StaticResource IconButtonStyle}"
+                            ToolTip="Recargar tabla desde disco (descarta cambios)"
+                            Width="32" Height="32" Padding="0"
+                            Margin="0,0,4,0">
+                        <TextBlock Text="&#xE777;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                   VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    </Button>
+
+                    <Button Command="{Binding SaveTableCommand}"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            ToolTip="Guardar cambios en el archivo DBF"
+                            Margin="0,0,4,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE74E;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                       VerticalAlignment="Center" Margin="0,0,5,0"/>
+                            <TextBlock Text="Guardar" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Separator/>
+
+                    <Button Command="{Binding ImportFromTableCommand}"
+                            ToolTip="Importar registros desde otro DBF (APPEND FROM)"
+                            Margin="0,0,4,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE8B5;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                       VerticalAlignment="Center" Margin="0,0,5,0"/>
+                            <TextBlock Text="Importar" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!--  CONTENIDO PRINCIPAL (3 columnas con splitters)                 -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <Grid Grid.Row="1" Margin="8">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="300" />
-                <ColumnDefinition Width="340" />
-                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="240" MinWidth="140"/>
+                <ColumnDefinition Width="6"/>
+                <ColumnDefinition Width="310" MinWidth="200"/>
+                <ColumnDefinition Width="6"/>
+                <ColumnDefinition Width="*" MinWidth="320"/>
             </Grid.ColumnDefinitions>
 
+            <!-- ─────────────────────────────────────────────────── -->
+            <!--  PANEL IZQUIERDO: Conexiones                         -->
+            <!-- ─────────────────────────────────────────────────── -->
             <Border Grid.Column="0"
-                    BorderBrush="#DDDDDD"
+                    Background="{DynamicResource LayerBackgroundBrush}"
+                    BorderBrush="{DynamicResource PanelBorderBrush}"
                     BorderThickness="1"
-                    CornerRadius="6"
-                    Padding="8"
-                    Margin="0,0,10,0">
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Top"
-                               Text="Conexiones"
-                               FontWeight="SemiBold"
-                               Margin="0,0,0,8" />
+                    CornerRadius="8">
+                <Border.Effect>
+                    <DropShadowEffect ShadowDepth="1" BlurRadius="6"
+                                      Color="{DynamicResource ShadowColor}"
+                                      Opacity="1" Direction="270"/>
+                </Border.Effect>
+                <DockPanel Margin="0,0,0,0">
+                    <!-- Header -->
+                    <Border DockPanel.Dock="Top"
+                            Background="{DynamicResource SubLayerBackgroundBrush}"
+                            BorderBrush="{DynamicResource DividerBrush}"
+                            BorderThickness="0,0,0,1"
+                            CornerRadius="8,8,0,0"
+                            Padding="12,10">
+                        <TextBlock Text="CONEXIONES"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource CaptionTextBrush}"/>
+                    </Border>
+                    <!-- Lista -->
                     <ListBox ItemsSource="{Binding Connections}"
                              SelectedItem="{Binding SelectedConnection, Mode=TwoWay}"
-                             DisplayMemberPath="DisplayName" />
+                             DisplayMemberPath="DisplayName"
+                             BorderThickness="0"
+                             Margin="4,4,4,4"/>
                 </DockPanel>
             </Border>
 
-            <Border Grid.Column="1"
-                    BorderBrush="#DDDDDD"
+            <!-- Splitter izquierdo -->
+            <GridSplitter Grid.Column="1"
+                          Width="6"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          Cursor="SizeWE"
+                          Margin="0"/>
+
+            <!-- ─────────────────────────────────────────────────── -->
+            <!--  PANEL CENTRAL: Archivos DBF + Estructura            -->
+            <!-- ─────────────────────────────────────────────────── -->
+            <Border Grid.Column="2"
+                    Background="{DynamicResource LayerBackgroundBrush}"
+                    BorderBrush="{DynamicResource PanelBorderBrush}"
                     BorderThickness="1"
-                    CornerRadius="6"
-                    Padding="8"
-                    Margin="0,0,10,0">
+                    CornerRadius="8">
+                <Border.Effect>
+                    <DropShadowEffect ShadowDepth="1" BlurRadius="6"
+                                      Color="{DynamicResource ShadowColor}"
+                                      Opacity="1" Direction="270"/>
+                </Border.Effect>
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="170" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto"/>   <!-- Header Archivos -->
+                        <RowDefinition Height="2*" MinHeight="80"/>  <!-- Lista archivos -->
+                        <RowDefinition Height="6"/>      <!-- Splitter interno -->
+                        <RowDefinition Height="Auto"/>   <!-- Header Estructura -->
+                        <RowDefinition Height="Auto"/>   <!-- Nombre tabla actual -->
+                        <RowDefinition Height="3*" MinHeight="80"/>  <!-- Grid estructura -->
                     </Grid.RowDefinitions>
 
-                    <TextBlock Grid.Row="0"
-                               Text="Archivos DBF"
-                               FontWeight="SemiBold"
-                               Margin="0,0,0,8" />
+                    <!-- Header Archivos -->
+                    <Border Grid.Row="0"
+                            Background="{DynamicResource SubLayerBackgroundBrush}"
+                            BorderBrush="{DynamicResource DividerBrush}"
+                            BorderThickness="0,0,0,1"
+                            CornerRadius="8,8,0,0"
+                            Padding="12,10">
+                        <TextBlock Text="ARCHIVOS DBF"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource CaptionTextBrush}"/>
+                    </Border>
 
+                    <!-- Lista de archivos -->
                     <ListBox Grid.Row="1"
+                             x:Name="DbfFilesList"
                              MouseDoubleClick="DbfFilesList_OnMouseDoubleClick"
                              ItemsSource="{Binding DbfFiles}"
-                             SelectedItem="{Binding SelectedDbfFile, Mode=TwoWay}" />
+                             SelectedItem="{Binding SelectedDbfFile, Mode=TwoWay}"
+                             BorderThickness="0"
+                             Margin="4,4,4,0"/>
 
-                    <DockPanel Grid.Row="2"
-                               Margin="0,12,0,8">
-                        <TextBlock DockPanel.Dock="Left"
-                                   Text="Estructura"
-                                   FontWeight="SemiBold" />
-                        <Button DockPanel.Dock="Right"
-                                Content="Copiar estructura"
-                                Margin="8,0,0,0"
-                                Command="{Binding CopyStructureCommand}" />
-                    </DockPanel>
+                    <!-- Splitter interno -->
+                    <GridSplitter Grid.Row="2"
+                                  Height="6"
+                                  HorizontalAlignment="Stretch"
+                                  VerticalAlignment="Stretch"
+                                  Cursor="SizeNS">
+                        <GridSplitter.Template>
+                            <ControlTemplate TargetType="GridSplitter">
+                                <Border x:Name="splitterBd"
+                                        Background="{DynamicResource DividerBrush}"
+                                        CornerRadius="2">
+                                    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="3"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="3"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Ellipse Grid.Column="0" Width="3" Height="3" Fill="{DynamicResource CaptionTextBrush}"/>
+                                        <Ellipse Grid.Column="2" Width="3" Height="3" Fill="{DynamicResource CaptionTextBrush}"/>
+                                        <Ellipse Grid.Column="4" Width="3" Height="3" Fill="{DynamicResource CaptionTextBrush}"/>
+                                    </Grid>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="splitterBd" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </GridSplitter.Template>
+                    </GridSplitter>
 
-                    <TextBlock Grid.Row="3"
-                               Text="{Binding CurrentTableDisplayName}"
-                               Margin="0,0,0,8"
-                               Foreground="#555555" />
+                    <!-- Header Estructura -->
+                    <Border Grid.Row="3"
+                            BorderBrush="{DynamicResource DividerBrush}"
+                            BorderThickness="0,1,0,1"
+                            Padding="12,8">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left"
+                                       Text="ESTRUCTURA"
+                                       FontSize="11"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource CaptionTextBrush}"
+                                       VerticalAlignment="Center"/>
+                            <Button DockPanel.Dock="Right"
+                                    Style="{StaticResource IconButtonStyle}"
+                                    Command="{Binding CopyStructureCommand}"
+                                    ToolTip="Copiar estructura al portapapeles"
+                                    Width="26" Height="26" Padding="0">
+                                <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                           VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                            </Button>
+                        </DockPanel>
+                    </Border>
 
-                    <DataGrid Grid.Row="4"
+                    <!-- Nombre de la tabla activa -->
+                    <Border Grid.Row="4"
+                            Padding="12,6,12,4"
+                            BorderBrush="{DynamicResource DividerBrush}"
+                            BorderThickness="0,0,0,1">
+                        <TextBlock Text="{Binding CurrentTableDisplayName}"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                   FontSize="12"
+                                   TextTrimming="CharacterEllipsis"/>
+                    </Border>
+
+                    <!-- DataGrid de estructura -->
+                    <DataGrid Grid.Row="5"
                               ItemsSource="{Binding CurrentTableStructure}"
                               AutoGenerateColumns="False"
                               IsReadOnly="True"
@@ -126,118 +341,270 @@
                               CanUserAddRows="False"
                               CanUserDeleteRows="False"
                               CanUserResizeRows="False"
-                              SelectionMode="Single">
+                              SelectionMode="Single"
+                              BorderThickness="0"
+                              Margin="0,0,0,0">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Campo"
                                                 Binding="{Binding Name}"
-                                                Width="*" />
+                                                Width="*"/>
                             <DataGridTextColumn Header="Tipo"
                                                 Binding="{Binding Type}"
-                                                Width="100" />
+                                                Width="80"/>
                             <DataGridTextColumn Header="Len"
                                                 Binding="{Binding Length}"
-                                                Width="55" />
+                                                Width="48"/>
                             <DataGridTextColumn Header="Dec"
                                                 Binding="{Binding DecimalCount}"
-                                                Width="55" />
+                                                Width="48"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
             </Border>
 
-            <Border Grid.Column="2"
-                    BorderBrush="#DDDDDD"
+            <!-- Splitter derecho -->
+            <GridSplitter Grid.Column="3"
+                          Width="6"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          Cursor="SizeWE"
+                          Margin="0"/>
+
+            <!-- ─────────────────────────────────────────────────── -->
+            <!--  PANEL DERECHO: Pestañas de tablas                   -->
+            <!-- ─────────────────────────────────────────────────── -->
+            <Border Grid.Column="4"
+                    Background="{DynamicResource LayerBackgroundBrush}"
+                    BorderBrush="{DynamicResource PanelBorderBrush}"
                     BorderThickness="1"
-                    CornerRadius="6"
-                    Padding="8">
-                <TabControl ItemsSource="{Binding OpenTables}"
-                            SelectedItem="{Binding SelectedOpenTable, Mode=TwoWay}">
-                    <TabControl.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding Header}"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,6,0" />
-                                <Button Content="x"
-                                        Width="18"
-                                        Height="18"
-                                        Padding="0"
-                                        FontWeight="Bold"
-                                        Command="{Binding CloseCommand}" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </TabControl.ItemTemplate>
+                    CornerRadius="8"
+                    ClipToBounds="True">
+                <Border.Effect>
+                    <DropShadowEffect ShadowDepth="1" BlurRadius="6"
+                                      Color="{DynamicResource ShadowColor}"
+                                      Opacity="1" Direction="270"/>
+                </Border.Effect>
 
-                    <TabControl.ContentTemplate>
-                        <DataTemplate>
-                            <Grid Margin="2">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="*" />
-                                </Grid.RowDefinitions>
+                <!-- Estado vacío (sin tabs abiertos) -->
+                <Grid>
+                    <Border x:Name="EmptyStatePlaceholder"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Padding="32">
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="&#xE8B7;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="48"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource CaptionTextBrush}"
+                                       Margin="0,0,0,12"/>
+                            <TextBlock Text="Abrí un archivo DBF para comenzar"
+                                       FontSize="14"
+                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                                       HorizontalAlignment="Center"/>
+                            <TextBlock Text="Seleccioná una conexión, elegí un archivo y hacé doble clic o presioná Abrir DBF."
+                                       FontSize="12"
+                                       Foreground="{DynamicResource CaptionTextBrush}"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap"
+                                       MaxWidth="300"
+                                       Margin="0,6,0,0"/>
+                        </StackPanel>
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding OpenTables.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                    </Border>
 
-                                <StackPanel Grid.Row="0"
-                                            Orientation="Horizontal"
-                                            Margin="0,0,0,8">
-                                    <TextBlock Text="Columna:"
+                    <!-- TabControl -->
+                    <TabControl ItemsSource="{Binding OpenTables}"
+                                SelectedItem="{Binding SelectedOpenTable, Mode=TwoWay}">
+                        <TabControl.Style>
+                            <Style TargetType="TabControl" BasedOn="{StaticResource {x:Type TabControl}}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding OpenTables.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TabControl.Style>
+
+                        <!-- Header de cada pestaña -->
+                        <TabControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Header}"
                                                VerticalAlignment="Center"
-                                               Margin="0,0,6,0" />
-                                    <ComboBox Width="180"
-                                              Margin="0,0,8,0"
-                                              ItemsSource="{Binding FilterColumns}"
-                                              SelectedItem="{Binding SelectedFilterColumn, Mode=TwoWay}" />
-                                    <ComboBox Width="120"
-                                              Margin="0,0,8,0"
-                                              ItemsSource="{Binding FilterOperators}"
-                                              SelectedItem="{Binding SelectedFilterOperator, Mode=TwoWay}" />
-                                    <TextBox Width="200"
-                                             Margin="0,0,8,0"
-                                             Text="{Binding FilterValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                    <Button Content="Aplicar filtro"
-                                            Margin="0,0,6,0"
-                                            Command="{Binding ApplyFilterCommand}" />
-                                    <Button Content="Quitar filtro"
-                                            Command="{Binding ClearFilterCommand}" />
+                                               Margin="0,0,6,0"
+                                               MaxWidth="200"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <Button Style="{StaticResource TabCloseButtonStyle}"
+                                            Command="{Binding CloseCommand}">
+                                        <TextBlock Text="&#xE711;"
+                                                   FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="9"
+                                                   VerticalAlignment="Center"
+                                                   HorizontalAlignment="Center"/>
+                                    </Button>
                                 </StackPanel>
+                            </DataTemplate>
+                        </TabControl.ItemTemplate>
 
-                                <TextBlock Grid.Row="1"
-                                           Text="{Binding CurrentFilterText}"
-                                           Margin="0,0,0,8"
-                                           Foreground="#555555" />
+                        <!-- Contenido de cada pestaña -->
+                        <TabControl.ContentTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>  <!-- Barra de filtro -->
+                                        <RowDefinition Height="Auto"/>  <!-- Filtro activo -->
+                                        <RowDefinition Height="*"/>     <!-- DataGrid -->
+                                    </Grid.RowDefinitions>
 
-                                <DataGrid Grid.Row="2"
-                                          ItemsSource="{Binding CurrentTableView}"
-                                          SelectedItem="{Binding SelectedRecord, Mode=TwoWay}"
-                                          SelectionChanged="TableDataGrid_OnSelectionChanged"
-                                          AutoGeneratingColumn="TableDataGrid_OnAutoGeneratingColumn"
-                                          AutoGenerateColumns="True"
-                                          CanUserAddRows="False"
-                                          CanUserDeleteRows="False"
-                                          CanUserSortColumns="True"
-                                          CanUserResizeRows="False"
-                                          SelectionUnit="FullRow"
-                                          SelectionMode="Extended" />
-                            </Grid>
-                        </DataTemplate>
-                    </TabControl.ContentTemplate>
-                </TabControl>
+                                    <!-- Barra de filtro -->
+                                    <Border Grid.Row="0"
+                                            Background="{DynamicResource SubLayerBackgroundBrush}"
+                                            BorderBrush="{DynamicResource DividerBrush}"
+                                            BorderThickness="0,0,0,1"
+                                            Padding="10,7">
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right"
+                                                    Style="{StaticResource IconButtonStyle}"
+                                                    Command="{Binding ClearFilterCommand}"
+                                                    ToolTip="Quitar filtro"
+                                                    Width="30" Height="30" Padding="0"
+                                                    Margin="4,0,0,0">
+                                                <TextBlock Text="&#xEA99;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                                           VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                            </Button>
+                                            <Button DockPanel.Dock="Right"
+                                                    Style="{StaticResource PrimaryButtonStyle}"
+                                                    Command="{Binding ApplyFilterCommand}"
+                                                    ToolTip="Aplicar filtro"
+                                                    Height="30" Padding="10,0"
+                                                    Margin="4,0,0,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="&#xE71C;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                                               VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                    <TextBlock Text="Filtrar" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="Columna"
+                                                           Foreground="{DynamicResource SecondaryTextBrush}"
+                                                           FontSize="12"
+                                                           VerticalAlignment="Center"
+                                                           Margin="0,0,6,0"/>
+                                                <ComboBox Width="170"
+                                                          Margin="0,0,8,0"
+                                                          ItemsSource="{Binding FilterColumns}"
+                                                          SelectedItem="{Binding SelectedFilterColumn, Mode=TwoWay}"/>
+                                                <ComboBox Width="110"
+                                                          Margin="0,0,8,0"
+                                                          ItemsSource="{Binding FilterOperators}"
+                                                          SelectedItem="{Binding SelectedFilterOperator, Mode=TwoWay}"/>
+                                                <TextBox Width="190"
+                                                         Text="{Binding FilterValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+
+                                    <!-- Indicador de filtro activo (visible solo cuando hay filtro) -->
+                                    <Border Grid.Row="1"
+                                            Padding="12,5"
+                                            Background="{DynamicResource AccentSubtleBrush}"
+                                            BorderBrush="{DynamicResource AccentBrush}"
+                                            BorderThickness="0,0,0,1"
+                                            Visibility="{Binding IsFilterActive, Converter={StaticResource BoolToVisibilityConverter}}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE71C;"
+                                                       FontFamily="Segoe MDL2 Assets"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource AccentBrush}"
+                                                       VerticalAlignment="Center"
+                                                       Margin="0,0,6,0"/>
+                                            <TextBlock Text="{Binding CurrentFilterText}"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource AccentBrush}"
+                                                       VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- DataGrid de datos -->
+                                    <DataGrid Grid.Row="2"
+                                              ItemsSource="{Binding CurrentTableView}"
+                                              SelectedItem="{Binding SelectedRecord, Mode=TwoWay}"
+                                              SelectionChanged="TableDataGrid_OnSelectionChanged"
+                                              AutoGeneratingColumn="TableDataGrid_OnAutoGeneratingColumn"
+                                              AutoGenerateColumns="True"
+                                              CanUserAddRows="False"
+                                              CanUserDeleteRows="False"
+                                              CanUserSortColumns="True"
+                                              CanUserResizeRows="False"
+                                              SelectionUnit="FullRow"
+                                              SelectionMode="Extended"
+                                              BorderThickness="0"/>
+                                </Grid>
+                            </DataTemplate>
+                        </TabControl.ContentTemplate>
+                    </TabControl>
+                </Grid>
             </Border>
         </Grid>
 
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!--  STATUS BAR                                                      -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
         <Border Grid.Row="2"
-                BorderBrush="#DDDDDD"
-                BorderThickness="1"
-                CornerRadius="4"
-                Padding="8"
-                Margin="0,10,0,0"
-                Background="#FCFCFC">
+                Background="{DynamicResource StatusBarBackgroundBrush}"
+                BorderBrush="{DynamicResource PanelBorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="12,5">
             <DockPanel>
-                <TextBlock DockPanel.Dock="Left"
-                           Text="{Binding StatusMessage}" />
-                <TextBlock DockPanel.Dock="Right"
-                           Text="{Binding DirtyStatus}"
-                           FontWeight="SemiBold" />
+                <!-- Estado dirty (derecha) -->
+                <StackPanel DockPanel.Dock="Right"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <Ellipse x:Name="DirtyIndicator"
+                             Width="7" Height="7"
+                             Margin="0,0,5,0"
+                             VerticalAlignment="Center">
+                        <Ellipse.Style>
+                            <Style TargetType="Ellipse">
+                                <Setter Property="Fill" Value="{DynamicResource SuccessBrush}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedOpenTable.HasPendingChanges}" Value="True">
+                                        <Setter Property="Fill" Value="{DynamicResource WarnBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Ellipse.Style>
+                    </Ellipse>
+                    <TextBlock Text="{Binding DirtyStatus}"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource SecondaryTextBrush}"/>
+                </StackPanel>
+
+                <!-- Mensaje de estado (izquierda) -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="&#xE946;"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="12"
+                               Foreground="{DynamicResource CaptionTextBrush}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,6,0"/>
+                    <TextBlock Text="{Binding StatusMessage}"
+                               FontSize="12"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
             </DockPanel>
         </Border>
     </Grid>

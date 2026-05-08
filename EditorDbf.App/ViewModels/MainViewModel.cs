@@ -23,6 +23,7 @@ public sealed class MainViewModel : ObservableObject
     private string? _selectedDbfFile;
     private TableTabViewModel? _selectedOpenTable;
     private string _statusMessage = "Listo.";
+    private bool _isDarkTheme;
 
     public MainViewModel(ConnectionRepository connectionRepository, DbfTableService dbfTableService)
     {
@@ -34,6 +35,7 @@ public sealed class MainViewModel : ObservableObject
         DbfFiles = new ObservableCollection<string>();
         OpenTables = new ObservableCollection<TableTabViewModel>();
 
+        ToggleThemeCommand = new RelayCommand(ToggleTheme);
         AddConnectionCommand = new RelayCommand(AddConnection);
         RemoveConnectionCommand = new RelayCommand(RemoveConnection, () => SelectedConnection is not null);
         RefreshFilesCommand = new RelayCommand(RefreshFiles, () => SelectedConnection is not null);
@@ -48,6 +50,14 @@ public sealed class MainViewModel : ObservableObject
 
         TryRestoreLastConnection();
     }
+
+    public bool IsDarkTheme
+    {
+        get => _isDarkTheme;
+        set => SetProperty(ref _isDarkTheme, value);
+    }
+
+    public ICommand ToggleThemeCommand { get; }
 
     public ObservableCollection<ConnectionProfile> Connections { get; }
 
@@ -146,6 +156,11 @@ public sealed class MainViewModel : ObservableObject
     {
         get => _statusMessage;
         private set => SetProperty(ref _statusMessage, value);
+    }
+
+    private void ToggleTheme()
+    {
+        IsDarkTheme = !IsDarkTheme;
     }
 
     private void AddConnection()

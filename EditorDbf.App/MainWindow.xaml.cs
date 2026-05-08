@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Data;
 using System.Linq;
 using System.Windows;
@@ -14,19 +15,41 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        DataContextChanged += OnDataContextChanged;
+    }
+
+    private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.OldValue is MainViewModel oldVm)
+            oldVm.PropertyChanged -= OnViewModelPropertyChanged;
+
+        if (e.NewValue is MainViewModel newVm)
+            newVm.PropertyChanged += OnViewModelPropertyChanged;
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainViewModel.IsDarkTheme))
+            ApplyTheme((sender as MainViewModel)!.IsDarkTheme);
+    }
+
+    private void ApplyTheme(bool isDark)
+    {
+        var dicts = Application.Current.Resources.MergedDictionaries;
+        dicts[0] = new System.Windows.ResourceDictionary
+        {
+            Source = new Uri(isDark ? "Themes/DarkTheme.xaml" : "Themes/LightTheme.xaml", UriKind.Relative)
+        };
+        ThemeIcon.Text = isDark ? "" : "";
     }
 
     private void DbfFilesList_OnMouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (sender is not ListBox listBox || listBox.SelectedItem is null)
-        {
             return;
-        }
 
         if (DataContext is MainViewModel viewModel && viewModel.OpenTableCommand.CanExecute(null))
-        {
             viewModel.OpenTableCommand.Execute(null);
-        }
     }
 
     private void TableDataGrid_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -50,9 +73,7 @@ public partial class MainWindow : Window
         if (e.PropertyType == typeof(DateTime) && e.Column is DataGridTextColumn textColumn)
         {
             if (textColumn.Binding is Binding binding)
-            {
                 binding.StringFormat = "dd/MM/yyyy";
-            }
         }
     }
 }

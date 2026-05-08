@@ -120,8 +120,14 @@ public sealed class TableTabViewModel : ObservableObject
     public string CurrentFilterText
     {
         get => _currentFilterText;
-        private set => SetProperty(ref _currentFilterText, value);
+        private set
+        {
+            if (SetProperty(ref _currentFilterText, value))
+                OnPropertyChanged(nameof(IsFilterActive));
+        }
     }
+
+    public bool IsFilterActive => !string.IsNullOrWhiteSpace(_document.DataTable.DefaultView.RowFilter);
 
     public bool HasPendingChanges
     {
