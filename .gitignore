@@ -1,0 +1,39 @@
+# Build outputs
+[Bb]in/
+[Oo]bj/
+
+# IDE / tooling
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.lscache
+
+# Rider / ReSharper
+.idea/
+*.sln.iml
+_ReSharper*/
+*.DotSettings.user
+
+# Logs
+*.log
+
+# NuGet
+packages/
+*.nupkg
+*.snupkg
+
+# Local runtime/cache folders generated in this workspace
+.dotnet/
+.templateengine/
+.localappdata/
+.appdata/
+.nuget/
+
+# OS files
+Thumbs.db
+Desktop.ini
+
+# Local git profile generated in sandboxed runs
+.gitconfig

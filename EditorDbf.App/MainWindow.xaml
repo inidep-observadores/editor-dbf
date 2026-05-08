@@ -1,0 +1,244 @@
+<Window x:Class="EditorDbf.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Editor DBF"
+        Height="900"
+        Width="1500"
+        MinHeight="720"
+        MinWidth="1200">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <ToolBar Grid.Row="0"
+                 Margin="0,0,0,10"
+                 Background="#F4F4F4">
+            <Button Content="Nueva conexion"
+                    Margin="0,0,5,0"
+                    Command="{Binding AddConnectionCommand}" />
+            <Button Content="Eliminar conexion"
+                    Margin="0,0,5,0"
+                    Command="{Binding RemoveConnectionCommand}" />
+            <Separator />
+            <Button Content="Actualizar archivos"
+                    Margin="5,0,5,0"
+                    Command="{Binding RefreshFilesCommand}" />
+            <Button Content="Abrir DBF"
+                    Margin="0,0,5,0"
+                    Command="{Binding OpenTableCommand}" />
+            <Button Content="Cerrar tab"
+                    Margin="0,0,5,0"
+                    Command="{Binding CloseSelectedTabCommand}" />
+            <Separator />
+            <Button Content="Agregar registro"
+                    Margin="5,0,5,0"
+                    Command="{Binding AddRecordCommand}" />
+            <Button Content="Borrar registro"
+                    Margin="0,0,5,0"
+                    Command="{Binding DeleteSelectedRecordCommand}" />
+            <Button Content="Recargar"
+                    Margin="0,0,5,0"
+                    Command="{Binding ReloadTableCommand}" />
+            <Button Content="Guardar cambios"
+                    Margin="0,0,5,0"
+                    Command="{Binding SaveTableCommand}" />
+            <Button Content="APPEND FROM"
+                    Margin="0,0,5,0"
+                    Command="{Binding ImportFromTableCommand}" />
+        </ToolBar>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="300" />
+                <ColumnDefinition Width="340" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0"
+                    BorderBrush="#DDDDDD"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="8"
+                    Margin="0,0,10,0">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top"
+                               Text="Conexiones"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,8" />
+                    <ListBox ItemsSource="{Binding Connections}"
+                             SelectedItem="{Binding SelectedConnection, Mode=TwoWay}"
+                             DisplayMemberPath="DisplayName" />
+                </DockPanel>
+            </Border>
+
+            <Border Grid.Column="1"
+                    BorderBrush="#DDDDDD"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="8"
+                    Margin="0,0,10,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="170" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0"
+                               Text="Archivos DBF"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,8" />
+
+                    <ListBox Grid.Row="1"
+                             MouseDoubleClick="DbfFilesList_OnMouseDoubleClick"
+                             ItemsSource="{Binding DbfFiles}"
+                             SelectedItem="{Binding SelectedDbfFile, Mode=TwoWay}" />
+
+                    <DockPanel Grid.Row="2"
+                               Margin="0,12,0,8">
+                        <TextBlock DockPanel.Dock="Left"
+                                   Text="Estructura"
+                                   FontWeight="SemiBold" />
+                        <Button DockPanel.Dock="Right"
+                                Content="Copiar estructura"
+                                Margin="8,0,0,0"
+                                Command="{Binding CopyStructureCommand}" />
+                    </DockPanel>
+
+                    <TextBlock Grid.Row="3"
+                               Text="{Binding CurrentTableDisplayName}"
+                               Margin="0,0,0,8"
+                               Foreground="#555555" />
+
+                    <DataGrid Grid.Row="4"
+                              ItemsSource="{Binding CurrentTableStructure}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              HeadersVisibility="Column"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              CanUserResizeRows="False"
+                              SelectionMode="Single">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Campo"
+                                                Binding="{Binding Name}"
+                                                Width="*" />
+                            <DataGridTextColumn Header="Tipo"
+                                                Binding="{Binding Type}"
+                                                Width="100" />
+                            <DataGridTextColumn Header="Len"
+                                                Binding="{Binding Length}"
+                                                Width="55" />
+                            <DataGridTextColumn Header="Dec"
+                                                Binding="{Binding DecimalCount}"
+                                                Width="55" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2"
+                    BorderBrush="#DDDDDD"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="8">
+                <TabControl ItemsSource="{Binding OpenTables}"
+                            SelectedItem="{Binding SelectedOpenTable, Mode=TwoWay}">
+                    <TabControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Header}"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,6,0" />
+                                <Button Content="x"
+                                        Width="18"
+                                        Height="18"
+                                        Padding="0"
+                                        FontWeight="Bold"
+                                        Command="{Binding CloseCommand}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </TabControl.ItemTemplate>
+
+                    <TabControl.ContentTemplate>
+                        <DataTemplate>
+                            <Grid Margin="2">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <StackPanel Grid.Row="0"
+                                            Orientation="Horizontal"
+                                            Margin="0,0,0,8">
+                                    <TextBlock Text="Columna:"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,6,0" />
+                                    <ComboBox Width="180"
+                                              Margin="0,0,8,0"
+                                              ItemsSource="{Binding FilterColumns}"
+                                              SelectedItem="{Binding SelectedFilterColumn, Mode=TwoWay}" />
+                                    <ComboBox Width="120"
+                                              Margin="0,0,8,0"
+                                              ItemsSource="{Binding FilterOperators}"
+                                              SelectedItem="{Binding SelectedFilterOperator, Mode=TwoWay}" />
+                                    <TextBox Width="200"
+                                             Margin="0,0,8,0"
+                                             Text="{Binding FilterValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <Button Content="Aplicar filtro"
+                                            Margin="0,0,6,0"
+                                            Command="{Binding ApplyFilterCommand}" />
+                                    <Button Content="Quitar filtro"
+                                            Command="{Binding ClearFilterCommand}" />
+                                </StackPanel>
+
+                                <TextBlock Grid.Row="1"
+                                           Text="{Binding CurrentFilterText}"
+                                           Margin="0,0,0,8"
+                                           Foreground="#555555" />
+
+                                <DataGrid Grid.Row="2"
+                                          ItemsSource="{Binding CurrentTableView}"
+                                          SelectedItem="{Binding SelectedRecord, Mode=TwoWay}"
+                                          SelectionChanged="TableDataGrid_OnSelectionChanged"
+                                          AutoGeneratingColumn="TableDataGrid_OnAutoGeneratingColumn"
+                                          AutoGenerateColumns="True"
+                                          CanUserAddRows="False"
+                                          CanUserDeleteRows="False"
+                                          CanUserSortColumns="True"
+                                          CanUserResizeRows="False"
+                                          SelectionUnit="FullRow"
+                                          SelectionMode="Extended" />
+                            </Grid>
+                        </DataTemplate>
+                    </TabControl.ContentTemplate>
+                </TabControl>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="2"
+                BorderBrush="#DDDDDD"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="8"
+                Margin="0,10,0,0"
+                Background="#FCFCFC">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Left"
+                           Text="{Binding StatusMessage}" />
+                <TextBlock DockPanel.Dock="Right"
+                           Text="{Binding DirtyStatus}"
+                           FontWeight="SemiBold" />
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>

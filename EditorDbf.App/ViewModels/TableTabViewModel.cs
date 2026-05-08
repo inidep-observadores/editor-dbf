@@ -1,0 +1,406 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Data;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Windows.Input;
+using EditorDbf.App.Infrastructure;
+using EditorDbf.App.Models;
+
+namespace EditorDbf.App.ViewModels;
+
+public sealed class TableTabViewModel : ObservableObject
+{
+    private static readonly string[] FilterOperatorsCatalog = ["=", "<>", ">", "<", "LIKE", "IS EMPTY", "IS NOT EMPTY"];
+
+    private DbfTableDocument _document;
+    private DataRowView? _selectedRecord;
+    private bool _hasPendingChanges;
+    private string? _selectedFilterColumn;
+    private string _selectedFilterOperator = "=";
+    private string _filterValue = string.Empty;
+    private string _currentFilterText = "(no filter)";
+    private readonly List<DataRowView> _selectedRecords = [];
+
+    public TableTabViewModel(
+        DbfTableDocument document,
+        IReadOnlyList<DbfFieldDescriptor> structure,
+        Action<TableTabViewModel> closeAction)
+    {
+        _document = document;
+
+        TableStructure = new ObservableCollection<DbfFieldDescriptor>(structure);
+        FilterColumns = new ObservableCollection<string>(document.DataTable.Columns.Cast<DataColumn>().Select(c => c.ColumnName));
+        FilterOperators = new ObservableCollection<string>(FilterOperatorsCatalog);
+        SelectedFilterColumn = FilterColumns.FirstOrDefault();
+
+        CloseCommand = new RelayCommand(() => closeAction(this));
+        ApplyFilterCommand = new RelayCommand(ApplyFilter, CanApplyFilter);
+        ClearFilterCommand = new RelayCommand(ClearFilter, () => CurrentTableView is not null);
+
+        SubscribeToDataTable();
+    }
+
+    public string FilePath => _document.FilePath;
+
+    public string FileName => Path.GetFileName(_document.FilePath);
+
+    public string Header => HasPendingChanges ? $"{FileName} *" : FileName;
+
+    public DbfTableDocument Document => _document;
+
+    public ObservableCollection<DbfFieldDescriptor> TableStructure { get; }
+
+    public ObservableCollection<string> FilterColumns { get; }
+
+    public ObservableCollection<string> FilterOperators { get; }
+
+    public ICommand CloseCommand { get; }
+
+    public ICommand ApplyFilterCommand { get; }
+
+    public ICommand ClearFilterCommand { get; }
+
+    public DataView CurrentTableView => _document.DataTable.DefaultView;
+
+    public DataRowView? SelectedRecord
+    {
+        get => _selectedRecord;
+        set
+        {
+            if (SetProperty(ref _selectedRecord, value))
+            {
+                OnPropertyChanged(nameof(HasSelectedRecords));
+            }
+        }
+    }
+
+    public int SelectedRecordsCount => _selectedRecords.Count;
+
+    public bool HasSelectedRecords => SelectedRecordsCount > 0 || SelectedRecord is not null;
+
+    public string? SelectedFilterColumn
+    {
+        get => _selectedFilterColumn;
+        set
+        {
+            if (SetProperty(ref _selectedFilterColumn, value))
+            {
+                NotifyCommands();
+            }
+        }
+    }
+
+    public string SelectedFilterOperator
+    {
+        get => _selectedFilterOperator;
+        set
+        {
+            if (SetProperty(ref _selectedFilterOperator, value))
+            {
+                NotifyCommands();
+            }
+        }
+    }
+
+    public string FilterValue
+    {
+        get => _filterValue;
+        set
+        {
+            if (SetProperty(ref _filterValue, value))
+            {
+                NotifyCommands();
+            }
+        }
+    }
+
+    public string CurrentFilterText
+    {
+        get => _currentFilterText;
+        private set => SetProperty(ref _currentFilterText, value);
+    }
+
+    public bool HasPendingChanges
+    {
+        get => _hasPendingChanges;
+        private set
+        {
+            if (SetProperty(ref _hasPendingChanges, value))
+            {
+                OnPropertyChanged(nameof(Header));
+            }
+        }
+    }
+
+    public void AddRecord()
+    {
+        var row = _document.DataTable.NewRow();
+        _document.DataTable.Rows.Add(row);
+        HasPendingChanges = true;
+    }
+
+    public int DeleteSelectedRecords()
+    {
+        if (_selectedRecords.Count > 0)
+        {
+            var deleted = 0;
+            var distinctRows = _selectedRecords
+                .DistinctBy(record => record.Row)
+                .ToList();
+
+            foreach (var record in distinctRows)
+            {
+                if (record.Row.RowState != DataRowState.Deleted)
+                {
+                    record.Delete();
+                    deleted++;
+                }
+            }
+
+            _selectedRecords.Clear();
+            OnPropertyChanged(nameof(SelectedRecordsCount));
+            OnPropertyChanged(nameof(HasSelectedRecords));
+            HasPendingChanges = deleted > 0 || HasPendingChanges;
+            return deleted;
+        }
+
+        if (SelectedRecord is null)
+        {
+            return 0;
+        }
+
+        SelectedRecord.Delete();
+        SelectedRecord = null;
+        HasPendingChanges = true;
+        return 1;
+    }
+
+    public void AppendRowsFrom(DataTable sourceTable)
+    {
+        foreach (DataRow sourceRow in sourceTable.Rows)
+        {
+            if (sourceRow.RowState == DataRowState.Deleted)
+            {
+                continue;
+            }
+
+            var targetRow = _document.DataTable.NewRow();
+            for (var columnIndex = 0; columnIndex < _document.DataTable.Columns.Count; columnIndex++)
+            {
+                targetRow[columnIndex] = sourceRow[columnIndex];
+            }
+
+            _document.DataTable.Rows.Add(targetRow);
+        }
+    }
+
+    public void ReplaceDocument(DbfTableDocument document, IReadOnlyList<DbfFieldDescriptor> structure)
+    {
+        UnsubscribeFromDataTable();
+        _document = document;
+
+        TableStructure.Clear();
+        foreach (var field in structure)
+        {
+            TableStructure.Add(field);
+        }
+
+        FilterColumns.Clear();
+        foreach (DataColumn column in _document.DataTable.Columns)
+        {
+            FilterColumns.Add(column.ColumnName);
+        }
+
+        SelectedFilterColumn = FilterColumns.FirstOrDefault();
+        SelectedFilterOperator = "=";
+        FilterValue = string.Empty;
+        CurrentFilterText = "(no filter)";
+        _document.DataTable.DefaultView.RowFilter = string.Empty;
+        SelectedRecord = null;
+        _selectedRecords.Clear();
+        OnPropertyChanged(nameof(SelectedRecordsCount));
+        OnPropertyChanged(nameof(HasSelectedRecords));
+
+        HasPendingChanges = false;
+        SubscribeToDataTable();
+        OnPropertyChanged(nameof(CurrentTableView));
+        NotifyCommands();
+    }
+
+    public void MarkSaved()
+    {
+        _document.DataTable.AcceptChanges();
+        HasPendingChanges = false;
+    }
+
+    public void Dispose()
+    {
+        UnsubscribeFromDataTable();
+    }
+
+    public void UpdateSelectedRecords(IEnumerable<DataRowView> selectedRecords)
+    {
+        _selectedRecords.Clear();
+        _selectedRecords.AddRange(selectedRecords);
+        OnPropertyChanged(nameof(SelectedRecordsCount));
+        OnPropertyChanged(nameof(HasSelectedRecords));
+    }
+
+    private bool CanApplyFilter()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedFilterColumn))
+        {
+            return false;
+        }
+
+        return !OperatorNeedsValue(SelectedFilterOperator) || !string.IsNullOrWhiteSpace(FilterValue);
+    }
+
+    private void ApplyFilter()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedFilterColumn))
+        {
+            return;
+        }
+
+        var column = _document.DataTable.Columns[SelectedFilterColumn];
+        if (column is null)
+        {
+            return;
+        }
+
+        var expression = BuildFilterExpression(column, SelectedFilterOperator, FilterValue);
+        _document.DataTable.DefaultView.RowFilter = expression;
+        CurrentFilterText = string.IsNullOrWhiteSpace(expression) ? "(no filter)" : expression;
+    }
+
+    private void ClearFilter()
+    {
+        _document.DataTable.DefaultView.RowFilter = string.Empty;
+        FilterValue = string.Empty;
+        CurrentFilterText = "(no filter)";
+    }
+
+    private void SubscribeToDataTable()
+    {
+        _document.DataTable.RowChanged += OnTableRowChanged;
+        _document.DataTable.RowDeleted += OnTableRowDeleted;
+        _document.DataTable.TableNewRow += OnTableNewRow;
+    }
+
+    private void UnsubscribeFromDataTable()
+    {
+        _document.DataTable.RowChanged -= OnTableRowChanged;
+        _document.DataTable.RowDeleted -= OnTableRowDeleted;
+        _document.DataTable.TableNewRow -= OnTableNewRow;
+    }
+
+    private void OnTableRowChanged(object? sender, DataRowChangeEventArgs e)
+    {
+        if (e.Action is DataRowAction.Change or DataRowAction.Add or DataRowAction.Delete)
+        {
+            HasPendingChanges = true;
+        }
+    }
+
+    private void OnTableRowDeleted(object? sender, DataRowChangeEventArgs e)
+    {
+        HasPendingChanges = true;
+    }
+
+    private void OnTableNewRow(object? sender, DataTableNewRowEventArgs e)
+    {
+        HasPendingChanges = true;
+    }
+
+    private void NotifyCommands()
+    {
+        (ApplyFilterCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (ClearFilterCommand as RelayCommand)?.RaiseCanExecuteChanged();
+    }
+
+    private static bool OperatorNeedsValue(string filterOperator)
+    {
+        return filterOperator is "=" or "<>" or ">" or "<" or "LIKE";
+    }
+
+    private static string BuildFilterExpression(DataColumn column, string filterOperator, string rawValue)
+    {
+        var safeColumn = $"[{EscapeColumnName(column.ColumnName)}]";
+        var value = rawValue ?? string.Empty;
+
+        return filterOperator switch
+        {
+            "IS EMPTY" => column.DataType == typeof(string)
+                ? $"{safeColumn} IS NULL OR {safeColumn} = ''"
+                : $"{safeColumn} IS NULL",
+            "IS NOT EMPTY" => column.DataType == typeof(string)
+                ? $"{safeColumn} IS NOT NULL AND {safeColumn} <> ''"
+                : $"{safeColumn} IS NOT NULL",
+            "LIKE" => $"Convert({safeColumn}, 'System.String') LIKE '%{EscapeStringLiteral(value)}%'",
+            "=" or "<>" or ">" or "<" => $"{safeColumn} {filterOperator} {BuildLiteral(column.DataType, value)}",
+            _ => string.Empty
+        };
+    }
+
+    private static string BuildLiteral(Type dataType, string value)
+    {
+        if (dataType == typeof(string))
+        {
+            return $"'{EscapeStringLiteral(value)}'";
+        }
+
+        if (dataType == typeof(bool))
+        {
+            return bool.TryParse(value, out var boolValue)
+                ? (boolValue ? "TRUE" : "FALSE")
+                : throw new InvalidOperationException("Boolean values must be true or false.");
+        }
+
+        if (dataType == typeof(DateTime))
+        {
+            if (!DateTime.TryParse(value, out var dateValue))
+            {
+                throw new InvalidOperationException("Date values must be valid (example: 2026-05-08).");
+            }
+
+            return $"#{dateValue:MM/dd/yyyy HH:mm:ss}#";
+        }
+
+        if (dataType == typeof(int))
+        {
+            return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var intValue)
+                ? intValue.ToString(CultureInfo.InvariantCulture)
+                : throw new InvalidOperationException("Integer value expected.");
+        }
+
+        if (dataType == typeof(decimal))
+        {
+            return decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var decimalValue)
+                ? decimalValue.ToString(CultureInfo.InvariantCulture)
+                : throw new InvalidOperationException("Decimal value expected. Use dot as separator.");
+        }
+
+        if (dataType == typeof(double))
+        {
+            return double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var doubleValue)
+                ? doubleValue.ToString(CultureInfo.InvariantCulture)
+                : throw new InvalidOperationException("Numeric value expected. Use dot as separator.");
+        }
+
+        return $"'{EscapeStringLiteral(value)}'";
+    }
+
+    private static string EscapeColumnName(string input)
+    {
+        return input.Replace("]", "]]", StringComparison.Ordinal);
+    }
+
+    private static string EscapeStringLiteral(string input)
+    {
+        return input.Replace("'", "''", StringComparison.Ordinal);
+    }
+}
