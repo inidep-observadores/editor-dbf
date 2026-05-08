@@ -172,7 +172,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="240" MinWidth="140"/>
                 <ColumnDefinition Width="6"/>
-                <ColumnDefinition Width="310" MinWidth="280"/>
+                <ColumnDefinition Width="310" MinWidth="340"/>
                 <ColumnDefinition Width="6"/>
                 <ColumnDefinition Width="*" MinWidth="320"/>
             </Grid.ColumnDefinitions>
@@ -398,42 +398,40 @@
                                 Padding="12,8"
                                 BorderBrush="{DynamicResource DividerBrush}"
                                 BorderThickness="0,0,0,1">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
+                            <DockPanel>
+                                <!-- Botones de acción (derecha) -->
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource IconButtonStyle}"
+                                            Command="{Binding SaveCodePageToTableCommand}"
+                                            ToolTip="Guardar código de página en la cabecera del DBF"
+                                            Width="28" Height="28" Padding="0"
+                                            Margin="4,0,0,0">
+                                        <TextBlock Text="&#xE74E;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                                   VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                    </Button>
+                                    <Button Style="{StaticResource IconButtonStyle}"
+                                            Command="{Binding ApplyCodePageCommand}"
+                                            ToolTip="Reabrir tabla con este código de página"
+                                            Width="28" Height="28" Padding="0"
+                                            Margin="4,0,0,0">
+                                        <TextBlock Text="&#xE71C;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                                   VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                    </Button>
+                                </StackPanel>
 
-                                <TextBlock Grid.Column="0"
-                                           Text="Código de página:"
-                                           VerticalAlignment="Center"
-                                           Foreground="{DynamicResource SecondaryTextBrush}"
-                                           Margin="0,0,8,0"/>
+                                <!-- Selector de codepage (izquierda) -->
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="Código de página:"
+                                               VerticalAlignment="Center"
+                                               Foreground="{DynamicResource SecondaryTextBrush}"
+                                               Margin="0,0,8,0"/>
 
-                                <ComboBox Grid.Column="1"
-                                          ItemsSource="{Binding AvailableCodePages}"
-                                          SelectedItem="{Binding SelectedCodePageOption, Mode=TwoWay}"
-                                          DisplayMemberPath="Label"
-                                          MinWidth="220"
-                                          Margin="0,0,8,0"/>
-
-                                <Button Grid.Column="2"
-                                        Command="{Binding ApplyCodePageCommand}"
-                                        ToolTip="Reabrir tabla con este código de página"
-                                        Margin="0,0,6,0"
-                                        Padding="10,4">
-                                    <TextBlock Text="Aplicar"/>
-                                </Button>
-
-                                <Button Grid.Column="3"
-                                        Command="{Binding SaveCodePageToTableCommand}"
-                                        ToolTip="Guardar código de página en la cabecera del DBF"
-                                        Padding="10,4">
-                                    <TextBlock Text="Guardar en cabecera"/>
-                                </Button>
-                            </Grid>
+                                    <ComboBox ItemsSource="{Binding AvailableCodePages}"
+                                              SelectedItem="{Binding SelectedCodePageOption, Mode=TwoWay}"
+                                              DisplayMemberPath="Label"
+                                              MinWidth="160"/>
+                                </StackPanel>
+                            </DockPanel>
                         </Border>
 
                         <!-- DataGrid de estructura -->
