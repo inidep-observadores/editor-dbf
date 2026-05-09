@@ -336,10 +336,7 @@
                         <!-- Datos de cabecera (colapsable) -->
                         <Expander Grid.Row="1"
                                   Header="Datos de cabecera"
-                                  IsExpanded="False"
-                                  Padding="12,6"
-                                  BorderBrush="{DynamicResource DividerBrush}"
-                                  BorderThickness="0,0,0,1">
+                                  IsExpanded="False">
                             <Grid Margin="0,6,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
