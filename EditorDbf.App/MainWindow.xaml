@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:infra="clr-namespace:EditorDbf.App.Infrastructure"
         mc:Ignorable="d"
         Title="Editor DBF"
         Icon="Assets/app_icon.png"
@@ -526,20 +527,20 @@
                     </Border>
 
                     <!-- TabControl -->
-                    <TabControl ItemsSource="{Binding OpenTables}"
-                                SelectedItem="{Binding SelectedOpenTable, Mode=TwoWay}">
-                        <TabControl.Style>
-                            <Style TargetType="TabControl" BasedOn="{StaticResource {x:Type TabControl}}">
+                    <infra:CachedTabControl ItemsSource="{Binding OpenTables}"
+                                            SelectedItem="{Binding SelectedOpenTable, Mode=TwoWay}">
+                        <infra:CachedTabControl.Style>
+                            <Style TargetType="{x:Type infra:CachedTabControl}" BasedOn="{StaticResource {x:Type infra:CachedTabControl}}">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding OpenTables.Count}" Value="0">
                                         <Setter Property="Visibility" Value="Collapsed"/>
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
-                        </TabControl.Style>
+                        </infra:CachedTabControl.Style>
 
                         <!-- Header de cada pestaña -->
-                        <TabControl.ItemTemplate>
+                        <infra:CachedTabControl.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <TextBlock Text="{Binding Header}"
@@ -557,10 +558,10 @@
                                     </Button>
                                 </StackPanel>
                             </DataTemplate>
-                        </TabControl.ItemTemplate>
+                        </infra:CachedTabControl.ItemTemplate>
 
                         <!-- Contenido de cada pestaña -->
-                        <TabControl.ContentTemplate>
+                        <infra:CachedTabControl.ContentTemplate>
                             <DataTemplate>
                                 <Grid>
                                     <Grid.RowDefinitions>
@@ -576,25 +577,6 @@
                                             BorderThickness="0,0,0,1"
                                             Padding="8,6">
                                         <DockPanel>
-                                            <!-- Botones de filtro (derecha) -->
-                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                                                <Button Style="{StaticResource IconButtonStyle}"
-                                                        Command="{Binding ClearFilterCommand}"
-                                                        ToolTip="Quitar filtro"
-                                                        Width="28" Height="28" Padding="0"
-                                                        Margin="4,0,0,0">
-                                                    <TextBlock Text="&#xEA99;" FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                                               VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                                                </Button>
-                                                <Button Style="{StaticResource IconButtonStyle}"
-                                                        Command="{Binding ApplyFilterCommand}"
-                                                        ToolTip="Aplicar filtro"
-                                                        Width="28" Height="28" Padding="0"
-                                                        Margin="4,0,0,0">
-                                                    <TextBlock Text="&#xE71C;" FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                                               VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                                                </Button>
-                                            </StackPanel>
 
                                             <!-- Controles de filtro (izquierda) -->
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -615,7 +597,30 @@
                                                           ToolTip="Seleccionar operador"/>
                                                 <TextBox Width="160"
                                                          Text="{Binding FilterValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                         ToolTip="Ingresar valor del filtro"/>
+                                                         ToolTip="Ingresar valor del filtro">
+                                                    <TextBox.InputBindings>
+                                                        <KeyBinding Key="Enter" Command="{Binding ApplyFilterCommand}"/>
+                                                        <KeyBinding Key="Escape" Command="{Binding ClearFilterCommand}"/>
+                                                    </TextBox.InputBindings>
+                                                </TextBox>
+
+                                                <!-- Botones de filtro -->
+                                                <Button Style="{StaticResource IconButtonStyle}"
+                                                        Command="{Binding ApplyFilterCommand}"
+                                                        ToolTip="Aplicar filtro"
+                                                        Width="28" Height="28" Padding="0"
+                                                        Margin="6,0,0,0">
+                                                    <TextBlock Text="&#xE71C;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                                               VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                </Button>
+                                                <Button Style="{StaticResource IconButtonStyle}"
+                                                        Command="{Binding ClearFilterCommand}"
+                                                        ToolTip="Quitar filtro"
+                                                        Width="28" Height="28" Padding="0"
+                                                        Margin="4,0,0,0">
+                                                    <TextBlock Text="&#xEA99;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                                               VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                </Button>
                                             </StackPanel>
                                         </DockPanel>
                                     </Border>
@@ -654,11 +659,15 @@
                                               CanUserResizeRows="False"
                                               SelectionUnit="FullRow"
                                               SelectionMode="Extended"
-                                              BorderThickness="0"/>
+                                              BorderThickness="0"
+                                              VirtualizingStackPanel.IsVirtualizing="True"
+                                              VirtualizingStackPanel.VirtualizationMode="Recycling"
+                                              EnableRowVirtualization="True"
+                                              EnableColumnVirtualization="True"/>
                                 </Grid>
                             </DataTemplate>
-                        </TabControl.ContentTemplate>
-                    </TabControl>
+                        </infra:CachedTabControl.ContentTemplate>
+                    </infra:CachedTabControl>
                 </Grid>
             </Border>
         </Grid>

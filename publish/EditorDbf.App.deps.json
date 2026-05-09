@@ -1,0 +1,41 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "EditorDbf.App/1.0.0": {
+        "dependencies": {
+          "DotNetDBF": "7.0.1"
+        },
+        "runtime": {
+          "EditorDbf.App.dll": {}
+        }
+      },
+      "DotNetDBF/7.0.1": {
+        "runtime": {
+          "lib/netstandard2.0/DotNetDBF.dll": {
+            "assemblyVersion": "7.0.1.0",
+            "fileVersion": "7.0.1.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "EditorDbf.App/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "DotNetDBF/7.0.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-oq9sLyFe84TTiHM3LD7oqWktSz09HWdouPefQj6pa5/3weR3hqOPULIkcCgISz+IJmOWERH9EFkNyXpJb0IjTQ==",
+      "path": "dotnetdbf/7.0.1",
+      "hashPath": "dotnetdbf.7.0.1.nupkg.sha512"
+    }
+  }
+}

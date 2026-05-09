@@ -1,5 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:infra="clr-namespace:EditorDbf.App.Infrastructure">
 
     <!-- ===== THUMB GRIPPER (usado por DataGridColumnHeader y GridSplitter) ===== -->
     <Style x:Key="ColumnHeaderGripperStyle" TargetType="Thumb">
@@ -864,4 +865,36 @@
         </Setter>
     </Style>
 
+    <!-- ===== CACHED TAB CONTROL ===== -->
+    <Style TargetType="{x:Type infra:CachedTabControl}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type infra:CachedTabControl}">
+                    <Grid KeyboardNavigation.TabNavigation="Local">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        
+                        <!-- Cabeceras de pestañas -->
+                        <TabPanel IsItemsHost="True" 
+                                  Grid.Row="0" 
+                                  Panel.ZIndex="1" 
+                                  KeyboardNavigation.TabIndex="1"/>
+                        
+                        <!-- Contenedor persistente de contenidos -->
+                        <Border Grid.Row="1" 
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                KeyboardNavigation.TabIndex="2"
+                                KeyboardNavigation.TabNavigation="Local"
+                                KeyboardNavigation.DirectionalNavigation="Contained">
+                            <Grid x:Name="PART_ItemsHolder" />
+                        </Border>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 </ResourceDictionary>
