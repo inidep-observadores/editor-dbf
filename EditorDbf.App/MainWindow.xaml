@@ -561,7 +561,8 @@
                                                MaxWidth="200"
                                                TextTrimming="CharacterEllipsis"/>
                                     <Button Style="{StaticResource TabCloseButtonStyle}"
-                                            Command="{Binding CloseCommand}">
+                                            Command="{Binding CloseCommand}"
+                                            ToolTip="Cerrar esta pestaña">
                                         <TextBlock Text="&#xE711;"
                                                    FontFamily="Segoe MDL2 Assets"
                                                    FontSize="9"
