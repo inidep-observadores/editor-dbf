@@ -86,43 +86,46 @@ public sealed class DbfTableService
             Path.GetDirectoryName(document.FilePath)!,
             $"{Path.GetFileNameWithoutExtension(document.FilePath)}.tmp{Path.GetExtension(document.FilePath)}");
 
-        using var output = File.Open(tempFilePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
-        using var writer = new DBFWriter
-        {
-            Fields = document.Fields,
-            Signature = document.Signature == 0 ? DBFSignature.DBase3 : document.Signature,
-            LanguageDriver = document.LanguageDriver
-        };
-
-        writer.CharEncoding = document.Encoding;
-
         var hasMemo = document.Fields.Any(f => f.DataType == NativeDbType.Memo);
-        if (hasMemo)
-        {
-            writer.DataMemoLoc = Path.ChangeExtension(tempFilePath, ".fpt");
-        }
 
-        foreach (DataRow row in document.DataTable.Rows)
+        using (var output = File.Open(tempFilePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
         {
-            if (row.RowState == DataRowState.Deleted)
+            using var writer = new DBFWriter
             {
-                continue;
+                Fields = document.Fields,
+                Signature = document.Signature == 0 ? DBFSignature.DBase3 : document.Signature,
+                LanguageDriver = document.LanguageDriver
+            };
+
+            writer.CharEncoding = document.Encoding;
+
+            if (hasMemo)
+            {
+                writer.DataMemoLoc = Path.ChangeExtension(tempFilePath, ".fpt");
             }
 
-            var values = new object[document.Fields.Length];
-            for (var fieldIndex = 0; fieldIndex < document.Fields.Length; fieldIndex++)
+            foreach (DataRow row in document.DataTable.Rows)
             {
-                var value = row[fieldIndex];
-                values[fieldIndex] = NormalizeOutgoingValue(value, document.Fields[fieldIndex]);
+                if (row.RowState == DataRowState.Deleted)
+                {
+                    continue;
+                }
+
+                var values = new object[document.Fields.Length];
+                for (var fieldIndex = 0; fieldIndex < document.Fields.Length; fieldIndex++)
+                {
+                    var value = row[fieldIndex];
+                    values[fieldIndex] = NormalizeOutgoingValue(value, document.Fields[fieldIndex]);
+                }
+
+                writer.AddRecord(values);
             }
 
-            writer.AddRecord(values);
+            writer.Write(output);
+            output.Flush();
         }
 
-        writer.Write(output);
-        output.Flush();
-
-        File.Copy(tempFilePath, document.FilePath, true);
+        File.Move(tempFilePath, document.FilePath, true);
         if (hasMemo)
         {
             var tempMemoFile = Path.ChangeExtension(tempFilePath, ".fpt");
@@ -130,13 +133,11 @@ public sealed class DbfTableService
 
             if (File.Exists(tempMemoFile))
             {
-                File.Copy(tempMemoFile, targetMemoFile, true);
-                File.Delete(tempMemoFile);
+                File.Move(tempMemoFile, targetMemoFile, true);
             }
         }
-
-        File.Delete(tempFilePath);
     }
+
 
     public IReadOnlyList<DbfFieldDescriptor> DescribeFields(DBFField[] fields)
     {
