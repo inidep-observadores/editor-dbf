@@ -194,11 +194,124 @@ public sealed class DbfTableService
 
     public void UpdateLanguageDriverByte(string filePath, byte languageDriver)
     {
-        using var stream = File.Open(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+        using var stream = File.Open(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
         stream.Seek(29, SeekOrigin.Begin);
         stream.WriteByte(languageDriver);
         stream.Flush();
     }
+
+    public void ExportTable(DbfTableDocument document, DataView view, string filePath, string format)
+    {
+        if (format.Equals(".csv", StringComparison.OrdinalIgnoreCase))
+        {
+            ExportToCsv(view, filePath);
+        }
+        else if (format.Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
+        {
+            ExportToExcel(view, filePath);
+        }
+        else if (format.Equals(".dbf", StringComparison.OrdinalIgnoreCase))
+        {
+            ExportToDbf(document, view, filePath);
+        }
+        else
+        {
+            throw new NotSupportedException($"Formato {format} no soportado.");
+        }
+    }
+
+    private void ExportToCsv(DataView view, string filePath)
+    {
+        var sb = new StringBuilder();
+        var columns = view.Table.Columns;
+
+        // Header
+        sb.AppendLine(string.Join(";", columns.Cast<DataColumn>().Select(c => c.ColumnName)));
+
+        // Data
+        foreach (DataRowView row in view)
+        {
+            var values = columns.Cast<DataColumn>().Select(c => 
+                Convert.ToString(row[c.ColumnName]).Replace(";", " "));
+            sb.AppendLine(string.Join(";", values));
+        }
+
+        File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
+    }
+
+    private void ExportToExcel(DataView view, string filePath)
+    {
+        using var workbook = new ClosedXML.Excel.XLWorkbook();
+        var worksheet = workbook.Worksheets.Add("Export");
+
+        var columns = view.Table.Columns;
+        for (var i = 0; i < columns.Count; i++)
+        {
+            worksheet.Cell(1, i + 1).Value = columns[i].ColumnName;
+        }
+
+        var rowCount = 0;
+        foreach (DataRowView row in view)
+        {
+            rowCount++;
+            for (var i = 0; i < columns.Count; i++)
+            {
+                worksheet.Cell(rowCount + 1, i + 1).Value = Convert.ToString(row[i]);
+            }
+        }
+
+        workbook.SaveAs(filePath);
+    }
+
+    private void ExportToDbf(DbfTableDocument document, DataView view, string filePath)
+    {
+        var tempFilePath = filePath + ".tmp";
+        
+        using (var output = File.Open(tempFilePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
+        {
+            using var writer = new DBFWriter
+            {
+                Fields = document.Fields,
+                Signature = document.Signature == 0 ? DBFSignature.DBase3 : document.Signature,
+                LanguageDriver = document.LanguageDriver
+            };
+
+            writer.CharEncoding = Encoding.GetEncoding(850);
+
+            var hasMemo = document.Fields.Any(f => f.DataType == NativeDbType.Memo);
+            if (hasMemo)
+            {
+                writer.DataMemoLoc = Path.ChangeExtension(tempFilePath, ".fpt");
+            }
+
+            foreach (DataRowView rowView in view)
+            {
+                var row = rowView.Row;
+                var values = new object[document.Fields.Length];
+                for (var fieldIndex = 0; fieldIndex < document.Fields.Length; fieldIndex++)
+                {
+                    var value = row[fieldIndex];
+                    values[fieldIndex] = NormalizeOutgoingValue(value, document.Fields[fieldIndex]);
+                }
+                writer.AddRecord(values);
+            }
+
+            writer.Write(output);
+            output.Flush();
+        }
+
+        File.Move(tempFilePath, filePath, true);
+        if (document.Fields.Any(f => f.DataType == NativeDbType.Memo))
+        {
+            var tempMemo = Path.ChangeExtension(tempFilePath, ".fpt");
+            var targetMemo = Path.ChangeExtension(filePath, ".fpt");
+            if (File.Exists(tempMemo))
+            {
+                File.Move(tempMemo, targetMemo, true);
+            }
+        }
+    }
+
 
     public static int? GuessCodePageFromLanguageDriver(byte languageDriver)
     {

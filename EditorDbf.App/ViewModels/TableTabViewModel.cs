@@ -39,6 +39,7 @@ public sealed class TableTabViewModel : ObservableObject
         CloseCommand = new RelayCommand(() => closeAction(this));
         ApplyFilterCommand = new RelayCommand(ApplyFilter, CanApplyFilter);
         ClearFilterCommand = new RelayCommand(ClearFilter, () => CurrentTableView is not null);
+        ExportCommand = new RelayCommand(ExportTable);
 
         SubscribeToDataTable();
     }
@@ -64,6 +65,7 @@ public sealed class TableTabViewModel : ObservableObject
     public ICommand ApplyFilterCommand { get; }
 
     public ICommand ClearFilterCommand { get; }
+    public ICommand ExportCommand { get; }
 
     public DataView CurrentTableView => _document.DataTable.DefaultView;
 
@@ -243,6 +245,25 @@ public sealed class TableTabViewModel : ObservableObject
     {
         _document.DataTable.AcceptChanges();
         HasPendingChanges = false;
+    }
+
+    public void ExportTable()
+    {
+        var fileNameWithoutExt = Path.GetFileNameWithoutExtension(FileName);
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Filter = "CSV file (*.csv)|*.csv|Excel file (*.xlsx)|*.xlsx|DBF file (*.dbf)|*.dbf",
+            FileName = $"{fileNameWithoutExt}.csv"
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            var path = dialog.FileName;
+            var ext = Path.GetExtension(path).ToLower();
+            
+            var service = new EditorDbf.App.Services.DbfTableService();
+            service.ExportTable(_document, CurrentTableView, path, ext);
+        }
     }
 
     public void Dispose()
