@@ -38,7 +38,8 @@ public partial class App : Application
 
         var connectionRepository = new ConnectionRepository();
         var dbfTableService = new DbfTableService();
-        var mainViewModel = new MainViewModel(connectionRepository, dbfTableService);
+        var dbfSqlService = new DbfSqlService(dbfTableService);
+        var mainViewModel = new MainViewModel(connectionRepository, dbfTableService, dbfSqlService);
 
         var mainWindow = new MainWindow
         {

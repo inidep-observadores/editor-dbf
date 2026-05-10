@@ -16,25 +16,26 @@ namespace EditorDbf.App.ViewModels;
 public sealed class MainViewModel : ObservableObject
 {
     private readonly ConnectionRepository _connectionRepository;
+    private readonly DbfSqlService _dbfSqlService;
     private readonly DbfTableService _dbfTableService;
     private readonly AppState _state;
-
     private ConnectionProfile? _selectedConnection;
     private string? _selectedDbfFile;
-    private TableTabViewModel? _selectedOpenTable;
+    private object? _selectedOpenTable;
     private string _statusMessage = "Listo.";
     private bool _isDarkTheme;
     private CodePageOption? _selectedCodePageOption;
 
-    public MainViewModel(ConnectionRepository connectionRepository, DbfTableService dbfTableService)
+    public MainViewModel(ConnectionRepository connectionRepository, DbfTableService dbfTableService, DbfSqlService dbfSqlService)
     {
         _connectionRepository = connectionRepository;
         _dbfTableService = dbfTableService;
+        _dbfSqlService = dbfSqlService;
         _state = _connectionRepository.Load();
 
         Connections = new ObservableCollection<ConnectionProfile>(_state.Connections);
         DbfFiles = new ObservableCollection<string>();
-        OpenTables = new ObservableCollection<TableTabViewModel>();
+        OpenTables = new ObservableCollection<object>();
         AvailableCodePages = new ObservableCollection<CodePageOption>(CreateCodePageOptions());
 
         ToggleThemeCommand = new RelayCommand(ToggleTheme);
@@ -42,15 +43,16 @@ public sealed class MainViewModel : ObservableObject
         RemoveConnectionCommand = new RelayCommand(RemoveConnection, () => SelectedConnection is not null);
         RefreshFilesCommand = new RelayCommand(RefreshFiles, () => SelectedConnection is not null);
         OpenTableCommand = new RelayCommand(OpenSelectedTable, () => SelectedConnection is not null && !string.IsNullOrWhiteSpace(SelectedDbfFile));
-        AddRecordCommand = new RelayCommand(AddRecord, () => SelectedOpenTable is not null);
-        DeleteSelectedRecordCommand = new RelayCommand(DeleteSelectedRecord, () => SelectedOpenTable?.HasSelectedRecords == true);
-        ReloadTableCommand = new RelayCommand(ReloadCurrentTable, () => SelectedOpenTable is not null);
-        SaveTableCommand = new RelayCommand(SaveCurrentTable, () => SelectedOpenTable is not null);
-        ImportFromTableCommand = new RelayCommand(ImportFromTable, () => SelectedOpenTable is not null);
-        ApplyCodePageCommand = new RelayCommand(ApplyCodePageForCurrentTable, () => SelectedOpenTable is not null && SelectedCodePageOption is not null);
-        SaveCodePageToTableCommand = new RelayCommand(SaveCodePageToTableHeader, () => SelectedOpenTable is not null && SelectedCodePageOption?.LanguageDriver is not null);
-        CopyStructureCommand = new RelayCommand(CopyStructureToClipboard, () => SelectedOpenTable is not null);
+        AddRecordCommand = new RelayCommand(AddRecord, () => ActiveTableTab is not null);
+        DeleteSelectedRecordCommand = new RelayCommand(DeleteSelectedRecord, () => ActiveTableTab?.HasSelectedRecords == true);
+        ReloadTableCommand = new RelayCommand(ReloadCurrentTable, () => ActiveTableTab is not null);
+        SaveTableCommand = new RelayCommand(SaveCurrentTable, () => ActiveTableTab is not null);
+        ImportFromTableCommand = new RelayCommand(ImportFromTable, () => ActiveTableTab is not null);
+        ApplyCodePageCommand = new RelayCommand(ApplyCodePageForCurrentTable, () => ActiveTableTab is not null && SelectedCodePageOption is not null);
+        SaveCodePageToTableCommand = new RelayCommand(SaveCodePageToTableHeader, () => ActiveTableTab is not null && SelectedCodePageOption?.LanguageDriver is not null);
+        CopyStructureCommand = new RelayCommand(CopyStructureToClipboard, () => ActiveTableTab is not null);
         CloseSelectedTabCommand = new RelayCommand(CloseSelectedTab, () => SelectedOpenTable is not null);
+        OpenSqlConsoleCommand = new RelayCommand(OpenSqlConsole, () => SelectedConnection is not null);
 
         TryRestoreLastConnection();
         IsDarkTheme = _state.IsDarkTheme;
@@ -68,7 +70,7 @@ public sealed class MainViewModel : ObservableObject
 
     public ObservableCollection<string> DbfFiles { get; }
 
-    public ObservableCollection<TableTabViewModel> OpenTables { get; }
+    public ObservableCollection<object> OpenTables { get; }
 
     public ObservableCollection<CodePageOption> AvailableCodePages { get; }
 
@@ -97,6 +99,8 @@ public sealed class MainViewModel : ObservableObject
     public ICommand CopyStructureCommand { get; }
 
     public ICommand CloseSelectedTabCommand { get; }
+
+    public ICommand OpenSqlConsoleCommand { get; }
 
     public ConnectionProfile? SelectedConnection
     {
@@ -127,7 +131,7 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    public TableTabViewModel? SelectedOpenTable
+    public object? SelectedOpenTable
     {
         get => _selectedOpenTable;
         set
@@ -137,19 +141,20 @@ public sealed class MainViewModel : ObservableObject
                 return;
             }
 
-            if (_selectedOpenTable is not null)
+            if (_selectedOpenTable is TableTabViewModel oldTab)
             {
-                _selectedOpenTable.PropertyChanged -= OnSelectedOpenTablePropertyChanged;
+                oldTab.PropertyChanged -= OnSelectedOpenTablePropertyChanged;
             }
 
             _selectedOpenTable = value;
             OnPropertyChanged();
 
-            if (_selectedOpenTable is not null)
+            if (_selectedOpenTable is TableTabViewModel newTab)
             {
-                _selectedOpenTable.PropertyChanged += OnSelectedOpenTablePropertyChanged;
+                newTab.PropertyChanged += OnSelectedOpenTablePropertyChanged;
             }
 
+            OnPropertyChanged(nameof(ActiveTableTab));
             OnPropertyChanged(nameof(CurrentTableDisplayName));
             OnPropertyChanged(nameof(DirtyStatus));
             OnPropertyChanged(nameof(CurrentTableStructure));
@@ -159,13 +164,23 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    public string CurrentTableDisplayName => SelectedOpenTable is null ? "(ninguna)" : SelectedOpenTable.FileName;
+    public TableTabViewModel? ActiveTableTab => SelectedOpenTable as TableTabViewModel;
 
-    public string DirtyStatus => SelectedOpenTable?.HasPendingChanges == true ? "Cambios pendientes" : "Sin cambios";
+    public string CurrentTableDisplayName
+    {
+        get
+        {
+            if (ActiveTableTab is not null) return ActiveTableTab.FileName;
+            if (SelectedOpenTable is SqlConsoleViewModel) return "Consola SQL";
+            return "(ninguna)";
+        }
+    }
 
-    public IReadOnlyList<DbfFieldDescriptor> CurrentTableStructure => SelectedOpenTable?.TableStructure ?? [];
+    public string DirtyStatus => ActiveTableTab?.HasPendingChanges == true ? "Cambios pendientes" : "Sin cambios";
 
-    public DbfHeaderInfo? CurrentTableHeaderInfo => SelectedOpenTable?.HeaderInfo;
+    public IReadOnlyList<DbfFieldDescriptor> CurrentTableStructure => ActiveTableTab?.TableStructure ?? [];
+
+    public DbfHeaderInfo? CurrentTableHeaderInfo => ActiveTableTab?.HeaderInfo;
 
     public CodePageOption? SelectedCodePageOption
     {
@@ -298,7 +313,7 @@ public sealed class MainViewModel : ObservableObject
         }
 
         var filePath = Path.Combine(SelectedConnection.FolderPath, SelectedDbfFile);
-        var existingTab = OpenTables.FirstOrDefault(tab =>
+        var existingTab = OpenTables.OfType<TableTabViewModel>().FirstOrDefault(tab =>
             string.Equals(tab.FilePath, filePath, StringComparison.OrdinalIgnoreCase));
 
         if (existingTab is not null)
@@ -328,12 +343,12 @@ public sealed class MainViewModel : ObservableObject
 
     private void AddRecord()
     {
-        if (SelectedOpenTable is null)
+        if (ActiveTableTab is null)
         {
             return;
         }
 
-        SelectedOpenTable.AddRecord();
+        ActiveTableTab.AddRecord();
         StatusMessage = "Registro agregado.";
         NotifyCommands();
         OnPropertyChanged(nameof(DirtyStatus));
@@ -341,12 +356,12 @@ public sealed class MainViewModel : ObservableObject
 
     private void DeleteSelectedRecord()
     {
-        if (SelectedOpenTable is null)
+        if (ActiveTableTab is null)
         {
             return;
         }
 
-        var deleted = SelectedOpenTable.DeleteSelectedRecords();
+        var deleted = ActiveTableTab.DeleteSelectedRecords();
         if (deleted > 0)
         {
             StatusMessage = deleted == 1 ? "1 registro marcado para borrar." : $"{deleted} registros marcados para borrar.";
@@ -357,12 +372,9 @@ public sealed class MainViewModel : ObservableObject
 
     private void ReloadCurrentTable()
     {
-        if (SelectedOpenTable is null)
-        {
-            return;
-        }
+        if (ActiveTableTab is null) return;
 
-        if (SelectedOpenTable.HasPendingChanges)
+        if (ActiveTableTab.HasPendingChanges)
         {
             var confirmReload = MessageBox.Show(
                 "Hay cambios sin guardar en esta tabla. ¿Recargar y descartarlos?",
@@ -370,19 +382,16 @@ public sealed class MainViewModel : ObservableObject
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning);
 
-            if (confirmReload != MessageBoxResult.Yes)
-            {
-                return;
-            }
+            if (confirmReload != MessageBoxResult.Yes) return;
         }
 
         try
         {
-            var forcedCodePage = ResolvePreferredCodePage(SelectedOpenTable.FilePath);
-            var document = _dbfTableService.LoadTable(SelectedOpenTable.FilePath, forcedCodePage);
+            var forcedCodePage = ResolvePreferredCodePage(ActiveTableTab.FilePath);
+            var document = _dbfTableService.LoadTable(ActiveTableTab.FilePath, forcedCodePage);
             var structure = _dbfTableService.DescribeFields(document.Fields);
 
-            SelectedOpenTable.ReplaceDocument(document, structure);
+            ActiveTableTab.ReplaceDocument(document, structure);
             OnPropertyChanged(nameof(CurrentTableStructure));
             OnPropertyChanged(nameof(CurrentTableHeaderInfo));
             OnPropertyChanged(nameof(DirtyStatus));
@@ -399,15 +408,12 @@ public sealed class MainViewModel : ObservableObject
 
     private void SaveCurrentTable()
     {
-        if (SelectedOpenTable is null)
-        {
-            return;
-        }
+        if (ActiveTableTab is null) return;
 
         try
         {
-            _dbfTableService.SaveTable(SelectedOpenTable.Document);
-            SelectedOpenTable.MarkSaved();
+            _dbfTableService.SaveTable(ActiveTableTab.Document);
+            ActiveTableTab.MarkSaved();
             OnPropertyChanged(nameof(DirtyStatus));
             StatusMessage = "Cambios guardados en DBF.";
             NotifyCommands();
@@ -421,10 +427,7 @@ public sealed class MainViewModel : ObservableObject
 
     private void ImportFromTable()
     {
-        if (SelectedOpenTable is null)
-        {
-            return;
-        }
+        if (ActiveTableTab is null) return;
 
         var dialog = new OpenFileDialog
         {
@@ -434,17 +437,14 @@ public sealed class MainViewModel : ObservableObject
             Multiselect = false
         };
 
-        if (dialog.ShowDialog() != true)
-        {
-            return;
-        }
+        if (dialog.ShowDialog() != true) return;
 
         try
         {
             var sourceForcedCodePage = ResolvePreferredCodePage(dialog.FileName);
             var sourceDocument = _dbfTableService.LoadTable(dialog.FileName, sourceForcedCodePage);
             if (!_dbfTableService.AreCompatibleStructures(
-                    SelectedOpenTable.Document.Fields,
+                    ActiveTableTab.Document.Fields,
                     sourceDocument.Fields,
                     out var mismatchReason))
             {
@@ -458,7 +458,7 @@ public sealed class MainViewModel : ObservableObject
             }
 
             var sourceRows = sourceDocument.DataTable.Rows.Count;
-            SelectedOpenTable.AppendRowsFrom(sourceDocument.DataTable);
+            ActiveTableTab.AppendRowsFrom(sourceDocument.DataTable);
             StatusMessage = sourceRows == 1
                 ? "1 registro importado con APPEND FROM."
                 : $"{sourceRows} registros importados con APPEND FROM.";
@@ -475,19 +475,16 @@ public sealed class MainViewModel : ObservableObject
 
     private void ApplyCodePageForCurrentTable()
     {
-        if (SelectedOpenTable is null || SelectedCodePageOption is null)
-        {
-            return;
-        }
+        if (ActiveTableTab is null || SelectedCodePageOption is null) return;
 
         try
         {
-            _state.TableCodePages[SelectedOpenTable.FilePath] = SelectedCodePageOption.CodePage;
+            _state.TableCodePages[ActiveTableTab.FilePath] = SelectedCodePageOption.CodePage;
             PersistState();
 
-            var document = _dbfTableService.LoadTable(SelectedOpenTable.FilePath, SelectedCodePageOption.CodePage);
+            var document = _dbfTableService.LoadTable(ActiveTableTab.FilePath, SelectedCodePageOption.CodePage);
             var structure = _dbfTableService.DescribeFields(document.Fields);
-            SelectedOpenTable.ReplaceDocument(document, structure);
+            ActiveTableTab.ReplaceDocument(document, structure);
 
             OnPropertyChanged(nameof(CurrentTableStructure));
             OnPropertyChanged(nameof(CurrentTableHeaderInfo));
@@ -503,20 +500,17 @@ public sealed class MainViewModel : ObservableObject
 
     private void SaveCodePageToTableHeader()
     {
-        if (SelectedOpenTable is null || SelectedCodePageOption?.LanguageDriver is null)
-        {
-            return;
-        }
+        if (ActiveTableTab is null || SelectedCodePageOption?.LanguageDriver is null) return;
 
         try
         {
-            _dbfTableService.UpdateLanguageDriverByte(SelectedOpenTable.FilePath, SelectedCodePageOption.LanguageDriver.Value);
-            _state.TableCodePages[SelectedOpenTable.FilePath] = SelectedCodePageOption.CodePage;
+            _dbfTableService.UpdateLanguageDriverByte(ActiveTableTab.FilePath, SelectedCodePageOption.LanguageDriver.Value);
+            _state.TableCodePages[ActiveTableTab.FilePath] = SelectedCodePageOption.CodePage;
             PersistState();
 
-            var document = _dbfTableService.LoadTable(SelectedOpenTable.FilePath, SelectedCodePageOption.CodePage);
+            var document = _dbfTableService.LoadTable(ActiveTableTab.FilePath, SelectedCodePageOption.CodePage);
             var structure = _dbfTableService.DescribeFields(document.Fields);
-            SelectedOpenTable.ReplaceDocument(document, structure);
+            ActiveTableTab.ReplaceDocument(document, structure);
 
             OnPropertyChanged(nameof(CurrentTableStructure));
             OnPropertyChanged(nameof(CurrentTableHeaderInfo));
@@ -532,17 +526,11 @@ public sealed class MainViewModel : ObservableObject
 
     private void CopyStructureToClipboard()
     {
-        if (SelectedOpenTable is null)
-        {
-            return;
-        }
+        if (ActiveTableTab is null) return;
 
-        var lines = new List<string>
-        {
-            "Nombre\tTipo\tLongitud\tDecimales"
-        };
+        var lines = new List<string> { "Nombre\tTipo\tLongitud\tDecimales" };
 
-        foreach (var field in SelectedOpenTable.TableStructure)
+        foreach (var field in ActiveTableTab.TableStructure)
         {
             lines.Add($"{field.Name}\t{field.Type}\t{field.Length}\t{field.DecimalCount}");
         }
@@ -553,18 +541,37 @@ public sealed class MainViewModel : ObservableObject
 
     private void CloseSelectedTab()
     {
-        if (SelectedOpenTable is null)
+        if (SelectedOpenTable is not null)
         {
-            return;
+            CloseAnyTab(SelectedOpenTable);
         }
-
-        CloseTab(SelectedOpenTable);
     }
 
-    private void CloseTab(TableTabViewModel tab)
+    private void OpenSqlConsole()
+    {
+        if (SelectedConnection is null) return;
+
+        var console = new SqlConsoleViewModel(_dbfSqlService, SelectedConnection.FolderPath, (vm) => 
+        {
+            CloseAnyTab(vm);
+            StatusMessage = "Consola SQL cerrada.";
+        });
+        OpenTables.Add(console);
+        SelectedOpenTable = console;
+        StatusMessage = "Consola SQL abierta.";
+    }
+
+    private void CloseTab(TableTabViewModel tab) => CloseAnyTab(tab);
+
+    private void CloseAnyTab(object tab)
     {
         var closingSelected = ReferenceEquals(SelectedOpenTable, tab);
-        tab.Dispose();
+        
+        if (tab is TableTabViewModel tableTab)
+        {
+            tableTab.Dispose();
+        }
+        
         OpenTables.Remove(tab);
 
         if (closingSelected)
@@ -635,6 +642,7 @@ public sealed class MainViewModel : ObservableObject
         (SaveCodePageToTableCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (CopyStructureCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (CloseSelectedTabCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (OpenSqlConsoleCommand as RelayCommand)?.RaiseCanExecuteChanged();
     }
 
     private int? ResolvePreferredCodePage(string filePath)
@@ -646,13 +654,13 @@ public sealed class MainViewModel : ObservableObject
 
     private void SyncSelectedCodePageFromActiveTable()
     {
-        if (SelectedOpenTable is null)
+        if (ActiveTableTab is null)
         {
             SelectedCodePageOption = null;
             return;
         }
 
-        var codePage = SelectedOpenTable.Document.EffectiveCodePage;
+        var codePage = ActiveTableTab.Document.EffectiveCodePage;
         SelectedCodePageOption = AvailableCodePages.FirstOrDefault(option => option.CodePage == codePage)
             ?? AvailableCodePages.FirstOrDefault();
     }

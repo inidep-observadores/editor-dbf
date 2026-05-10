@@ -64,4 +64,5 @@
 
     <!-- Shadow for cards -->
     <Color x:Key="ShadowColor">#FF000000</Color>
+    <SolidColorBrush x:Key="OverlayBrush"                    Color="#80000000"/>
 </ResourceDictionary>

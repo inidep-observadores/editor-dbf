@@ -12,6 +12,7 @@
             </ResourceDictionary.MergedDictionaries>
             <!-- Converters globales -->
             <infra:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+            <infra:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>
