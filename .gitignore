@@ -4,6 +4,8 @@
 _build_check/
 publish/
 publish_output/
+setup/publish/
+setup/*.exe
 
 # IDE / tooling
 .vs/
