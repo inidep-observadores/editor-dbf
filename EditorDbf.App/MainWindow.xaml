@@ -382,13 +382,13 @@
                                     <TreeView.ItemContainerStyle>
                                         <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
                                             <Setter Property="Padding" Value="4,2"/>
-                                            <Setter Property="infra:EventBindingHelper.MouseDoubleClickCommand" Value="{Binding DataContext.InsertItemCommand, RelativeSource={RelativeSource AncestorType=TreeView}}"/>
-                                            <Setter Property="infra:EventBindingHelper.MouseDoubleClickCommandParameter" Value="{Binding}"/>
                                         </Style>
                                     </TreeView.ItemContainerStyle>
                                     <TreeView.ItemTemplate>
                                         <HierarchicalDataTemplate ItemsSource="{Binding Children}">
-                                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                            <StackPanel Orientation="Horizontal" Margin="0,2" Background="Transparent"
+                                                        infra:EventBindingHelper.MouseDoubleClickCommand="{Binding DataContext.InsertItemCommand, RelativeSource={RelativeSource AncestorType=TreeView}}"
+                                                        infra:EventBindingHelper.MouseDoubleClickCommandParameter="{Binding}">
                                                 <TextBlock Text="{Binding Icon}" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                                 <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextBrush}"/>
                                                 <TextBlock Text="{Binding Details}" FontSize="10" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource CaptionTextBrush}"/>
@@ -607,6 +607,7 @@
                                                      infra:TextBoxHelper.BindSelection="True"
                                                      infra:TextBoxHelper.SelectedText="{Binding SelectedText, Mode=TwoWay}"
                                                      infra:TextBoxHelper.CaretIndex="{Binding CaretIndex, Mode=TwoWay}"
+                                                     infra:TextBoxHelper.FocusTrigger="{Binding TriggerFocus, Mode=TwoWay}"
                                                      AcceptsReturn="True"
                                                      AcceptsTab="True"
                                                      FontFamily="Consolas"

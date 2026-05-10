@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace EditorDbf.App.Infrastructure;
 
@@ -35,6 +36,35 @@ public static class TextBoxHelper
     public static bool GetBindSelection(DependencyObject obj) => (bool)obj.GetValue(BindSelectionProperty);
     public static void SetBindSelection(DependencyObject obj, bool value) => obj.SetValue(BindSelectionProperty, value);
 
+    public static readonly DependencyProperty FocusTriggerProperty =
+        DependencyProperty.RegisterAttached(
+            "FocusTrigger",
+            typeof(bool),
+            typeof(TextBoxHelper),
+            new PropertyMetadata(false, OnFocusTriggerChanged));
+
+    public static bool GetFocusTrigger(DependencyObject obj) => (bool)obj.GetValue(FocusTriggerProperty);
+    public static void SetFocusTrigger(DependencyObject obj, bool value) => obj.SetValue(FocusTriggerProperty, value);
+
+    private static void OnFocusTriggerChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is UIElement element && (bool)e.NewValue)
+        {
+            // Usar Dispatcher para asegurar que el foco se asigne después de que terminen los eventos de UI actuales
+            element.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                element.Focus();
+                if (element is TextBox textBox)
+                {
+                    Keyboard.Focus(textBox);
+                    // A veces es necesario forzar la actualización visual del cursor
+                    var index = textBox.CaretIndex;
+                    textBox.CaretIndex = index;
+                }
+            }), System.Windows.Threading.DispatcherPriority.Input);
+        }
+    }
+
     private static void OnBindSelectionChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is TextBox textBox)
@@ -42,6 +72,13 @@ public static class TextBoxHelper
             if ((bool)e.NewValue)
             {
                 textBox.SelectionChanged += OnSelectionChanged;
+                
+                // Sincronizar valores iniciales del VM al Control al activarse
+                var initialCaret = GetCaretIndex(textBox);
+                if (initialCaret > 0)
+                {
+                    textBox.CaretIndex = Math.Min(initialCaret, textBox.Text.Length);
+                }
             }
             else
             {
@@ -62,8 +99,18 @@ public static class TextBoxHelper
     {
         if (sender is TextBox textBox)
         {
-            SetSelectedText(textBox, textBox.SelectedText);
-            SetCaretIndex(textBox, textBox.CaretIndex);
+            // Solo actualizar si el valor ha cambiado realmente para evitar bucles de bindeo
+            var currentCaret = textBox.CaretIndex;
+            if (GetCaretIndex(textBox) != currentCaret)
+            {
+                SetCaretIndex(textBox, currentCaret);
+            }
+
+            var currentSelection = textBox.SelectedText;
+            if (GetSelectedText(textBox) != currentSelection)
+            {
+                SetSelectedText(textBox, currentSelection);
+            }
         }
     }
 

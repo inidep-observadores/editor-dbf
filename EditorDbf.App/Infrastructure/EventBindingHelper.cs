@@ -6,6 +6,7 @@ namespace EditorDbf.App.Infrastructure;
 
 /// <summary>
 /// Helper para bindeo de eventos a comandos (ej: MouseDoubleClick).
+/// Soporta cualquier UIElement mediante la detección de ClickCount en MouseDown.
 /// </summary>
 public static class EventBindingHelper
 {
@@ -31,19 +32,22 @@ public static class EventBindingHelper
 
     private static void OnMouseDoubleClickCommandChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
-        if (d is Control control)
+        if (d is UIElement element)
         {
-            control.MouseDoubleClick -= OnMouseDoubleClick;
+            // Usamos PreviewMouseDown para tener mayor control sobre el burbujeo si fuera necesario,
+            // pero MouseDown es suficiente para el StackPanel dentro del TreeView.
+            element.MouseDown -= OnMouseDown;
             if (e.NewValue is not null)
             {
-                control.MouseDoubleClick += OnMouseDoubleClick;
+                element.MouseDown += OnMouseDown;
             }
         }
     }
 
-    private static void OnMouseDoubleClick(object sender, MouseButtonEventArgs e)
+    private static void OnMouseDown(object sender, MouseButtonEventArgs e)
     {
-        if (sender is DependencyObject d)
+        // Detectamos el doble clic mediante ClickCount
+        if (e.ClickCount == 2 && sender is DependencyObject d)
         {
             var command = GetMouseDoubleClickCommand(d);
             var parameter = GetMouseDoubleClickCommandParameter(d);
@@ -51,6 +55,7 @@ public static class EventBindingHelper
             if (command?.CanExecute(parameter) == true)
             {
                 command.Execute(parameter);
+                // Marcamos como manejado para que el evento no burbujee a los contenedores padre (TreeViewItem padre)
                 e.Handled = true;
             }
         }

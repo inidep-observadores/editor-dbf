@@ -30,6 +30,7 @@ public sealed class SqlConsoleViewModel : ObservableObject
     private string _sqlQuery = "SELECT * FROM ";
     private string _selectedText = string.Empty;
     private int _caretIndex;
+    private bool _triggerFocus;
     private DataTable? _results;
     private string _statusMessage = "Escribe una consulta SQL y presiona Ejecutar.";
     private bool _isBusy;
@@ -81,6 +82,12 @@ public sealed class SqlConsoleViewModel : ObservableObject
         set => SetProperty(ref _caretIndex, value);
     }
 
+    public bool TriggerFocus
+    {
+        get => _triggerFocus;
+        set => SetProperty(ref _triggerFocus, value);
+    }
+
     public ObservableCollection<SqlSchemaItem> SchemaItems
     {
         get => _schemaItems;
@@ -121,13 +128,27 @@ public sealed class SqlConsoleViewModel : ObservableObject
         
         string textToInsert = item.SqlName;
         string currentText = SqlQuery ?? string.Empty;
-        int index = CaretIndex;
+        
+        // Capturamos el índice actual localmente para que no se pierda durante la actualización del texto
+        int indexToInsertAt = CaretIndex;
+        
+        // Validación de seguridad por si el texto cambió externamente
+        if (indexToInsertAt > currentText.Length) 
+            indexToInsertAt = currentText.Length;
+        if (indexToInsertAt < 0)
+            indexToInsertAt = 0;
 
-        // Si el índice es mayor que el texto, lo ajustamos
-        if (index > currentText.Length) index = currentText.Length;
-
-        SqlQuery = currentText.Insert(index, textToInsert);
-        CaretIndex = index + textToInsert.Length;
+        // Insertar el texto en la posición capturada
+        SqlQuery = currentText.Insert(indexToInsertAt, textToInsert);
+        
+        // Actualizar el CaretIndex al final de la inserción para posicionar el cursor tras el texto insertado
+        // Al asignar esto después de SqlQuery, forzamos que la UI mueva el cursor al lugar correcto
+        CaretIndex = indexToInsertAt + textToInsert.Length;
+        
+        // Disparamos el foco de vuelta al editor
+        // Hacemos un ciclo true -> false para asegurar que el bindeo detecte el cambio siempre
+        TriggerFocus = true;
+        TriggerFocus = false;
     }
 
     private async Task LoadSchemaAsync()
