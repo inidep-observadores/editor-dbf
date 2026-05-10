@@ -244,4 +244,14 @@ public sealed class DbfSqlService
             _ => Convert.ToString(val) ?? string.Empty
         };
     }
+
+    public async Task<IEnumerable<DBFField>> GetTableSchemaAsync(string dbfFilePath)
+    {
+        return await Task.Run(() => 
+        {
+            // Usamos el servicio de tablas para cargar el documento y extraer sus campos
+            var doc = _dbfTableService.LoadTable(dbfFilePath);
+            return doc.Fields.AsEnumerable();
+        });
+    }
 }

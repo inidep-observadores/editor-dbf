@@ -235,258 +235,182 @@
                           Margin="0"/>
 
             <!-- ─────────────────────────────────────────────────── -->
-            <!--  PANEL CENTRAL: Archivos DBF + Estructura            -->
+            <!--  PANEL CENTRAL: Dinámico según contexto              -->
             <!-- ─────────────────────────────────────────────────── -->
-            <Border Grid.Column="2"
-                    Background="{DynamicResource LayerBackgroundBrush}"
-                    BorderBrush="{DynamicResource PanelBorderBrush}"
-                    BorderThickness="1"
-                    CornerRadius="8">
-                <Border.Effect>
-                    <DropShadowEffect ShadowDepth="1" BlurRadius="6"
-                                      Color="{DynamicResource ShadowColor}"
-                                      Opacity="1" Direction="270"/>
-                </Border.Effect>
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>   <!-- Header Archivos -->
-                        <RowDefinition Height="2*" MinHeight="80"/>  <!-- Lista archivos -->
-                        <RowDefinition Height="6"/>      <!-- Splitter interno -->
-                        <RowDefinition Height="3*" MinHeight="80"/>  <!-- Bloque Estructura -->
-                    </Grid.RowDefinitions>
-
-                    <!-- Header Archivos -->
-                    <Border Grid.Row="0"
-                            Background="{DynamicResource SubLayerBackgroundBrush}"
-                            BorderBrush="{DynamicResource DividerBrush}"
-                            BorderThickness="0,0,0,1"
-                            CornerRadius="8,8,0,0"
-                            Padding="12,10">
-                        <DockPanel>
-                            <TextBlock Text="ARCHIVOS DBF"
-                                    FontSize="11"
-                                    FontWeight="SemiBold"
-                                    Foreground="{DynamicResource CaptionTextBrush}"
-                                    VerticalAlignment="Center"/>
-                            <Button DockPanel.Dock="Right"
-                                    Style="{StaticResource IconButtonStyle}"
-                                    Command="{Binding RefreshFilesCommand}"
-                                    ToolTip="Actualizar lista de archivos"
-                                    Width="26" Height="26" Padding="0">
-                                <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                           VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                            </Button>
-                        </DockPanel>
-                    </Border>
-
-
-                    <!-- Lista de archivos -->
-                    <ListBox Grid.Row="1"
-                             x:Name="DbfFilesList"
-                             MouseDoubleClick="DbfFilesList_OnMouseDoubleClick"
-                             ItemsSource="{Binding DbfFiles}"
-                             SelectedItem="{Binding SelectedDbfFile, Mode=TwoWay}"
-                             BorderThickness="0"
-                             Margin="4,4,4,0"/>
-
-                    <!-- Splitter interno -->
-                    <GridSplitter Grid.Row="2"
-                                  Height="6"
-                                  HorizontalAlignment="Stretch"
-                                  VerticalAlignment="Stretch"
-                                  Cursor="SizeNS"
-                                  ResizeBehavior="PreviousAndNext"
-                                  ShowsPreview="True">
-                        <GridSplitter.Template>
-                            <ControlTemplate TargetType="GridSplitter">
-                                <Border x:Name="splitterBd"
-                                        Background="{DynamicResource DividerBrush}"
-                                        CornerRadius="2">
-                                    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="3"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="3"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <Ellipse Grid.Column="0" Width="3" Height="3" Fill="{DynamicResource CaptionTextBrush}"/>
-                                        <Ellipse Grid.Column="2" Width="3" Height="3" Fill="{DynamicResource CaptionTextBrush}"/>
-                                        <Ellipse Grid.Column="4" Width="3" Height="3" Fill="{DynamicResource CaptionTextBrush}"/>
-                                    </Grid>
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="splitterBd" Property="Background" Value="{DynamicResource AccentBrush}"/>
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </GridSplitter.Template>
-                    </GridSplitter>
-
-                    <!-- Bloque de estructura -->
-                    <Grid Grid.Row="3">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>   <!-- Header Estructura -->
-                            <RowDefinition Height="Auto"/>   <!-- Info cabecera -->
-                            <RowDefinition Height="Auto"/>   <!-- Nombre tabla actual -->
-                            <RowDefinition Height="Auto"/>   <!-- Selector codepage -->
-                            <RowDefinition Height="*"/>      <!-- Grid estructura -->
-                        </Grid.RowDefinitions>
-
-                        <!-- Header Estructura -->
-                        <Border Grid.Row="0"
-                                BorderBrush="{DynamicResource DividerBrush}"
-                                BorderThickness="0,1,0,1"
-                                Padding="12,8">
-                            <DockPanel>
-                                <TextBlock DockPanel.Dock="Left"
-                                           Text="ESTRUCTURA"
-                                           FontSize="11"
-                                           FontWeight="SemiBold"
-                                           Foreground="{DynamicResource CaptionTextBrush}"
-                                           VerticalAlignment="Center"/>
-                                <Button DockPanel.Dock="Right"
-                                        Style="{StaticResource IconButtonStyle}"
-                                        Command="{Binding CopyStructureCommand}"
-                                        ToolTip="Copiar estructura al portapapeles"
-                                        Width="26" Height="26" Padding="0">
-                                    <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                               VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                                </Button>
-                            </DockPanel>
-                        </Border>
-
-                        <!-- Datos de cabecera (colapsable) -->
-                        <Expander Grid.Row="1"
-                                  Header="Datos de cabecera"
-                                  IsExpanded="False">
-                            <Grid Margin="0,6,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
+            <ContentControl Grid.Column="2" Content="{Binding SelectedOpenTable}">
+                <ContentControl.Resources>
+                    <!-- Template para el Explorador de Archivos (Modo Tabla) -->
+                    <ControlTemplate x:Key="FileExplorerTemplate">
+                        <Border Background="{DynamicResource LayerBackgroundBrush}"
+                                BorderBrush="{DynamicResource PanelBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                            <Border.Effect>
+                                <DropShadowEffect ShadowDepth="1" BlurRadius="6"
+                                                  Color="{DynamicResource ShadowColor}"
+                                                  Opacity="1" Direction="270"/>
+                            </Border.Effect>
+                            <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="2*" MinHeight="80"/>
+                                    <RowDefinition Height="6"/>
+                                    <RowDefinition Height="3*" MinHeight="80"/>
                                 </Grid.RowDefinitions>
 
-                                <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,8,4"
-                                           Text="{Binding CurrentTableHeaderInfo.RecordCount, StringFormat=Registros: {0}}"
-                                           Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
-                                <TextBlock Grid.Row="0" Grid.Column="1" Margin="0,0,0,4"
-                                           Text="{Binding CurrentTableHeaderInfo.FieldCount, StringFormat=Campos: {0}}"
-                                           Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
+                                <!-- Header Archivos -->
+                                <Border Grid.Row="0"
+                                        Background="{DynamicResource SubLayerBackgroundBrush}"
+                                        BorderBrush="{DynamicResource DividerBrush}"
+                                        BorderThickness="0,0,0,1"
+                                        CornerRadius="8,8,0,0"
+                                        Padding="12,10">
+                                    <DockPanel>
+                                        <TextBlock Text="ARCHIVOS DBF"
+                                                   FontSize="11"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource CaptionTextBrush}"
+                                                   VerticalAlignment="Center"/>
+                                        <Button DockPanel.Dock="Right"
+                                                Style="{StaticResource IconButtonStyle}"
+                                                Command="{Binding DataContext.RefreshFilesCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                ToolTip="Actualizar lista de archivos"
+                                                Width="26" Height="26">
+                                            <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                                       VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                        </Button>
+                                    </DockPanel>
+                                </Border>
 
-                                <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,8,4"
-                                           Text="{Binding CurrentTableHeaderInfo.HeaderSize, StringFormat=Tamaño cabecera: {0} bytes}"
-                                           Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
-                                <TextBlock Grid.Row="1" Grid.Column="1" Margin="0,0,0,4"
-                                           Text="{Binding CurrentTableHeaderInfo.RecordSize, StringFormat=Tamaño registro: {0} bytes}"
-                                           Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
+                                <ListBox Grid.Row="1"
+                                         x:Name="DbfFilesList"
+                                         MouseDoubleClick="DbfFilesList_OnMouseDoubleClick"
+                                         ItemsSource="{Binding DataContext.DbfFiles, RelativeSource={RelativeSource AncestorType=Window}}"
+                                         SelectedItem="{Binding DataContext.SelectedDbfFile, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}"
+                                         BorderThickness="0"
+                                         Margin="4,4,4,0"/>
 
-                                <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,8,4"
-                                           Text="{Binding CurrentTableHeaderInfo.FileTypeDescription, StringFormat=Tipo archivo: {0}}"
-                                           Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12" TextWrapping="Wrap"/>
-                                <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,0,0,4"
-                                           Text="{Binding CurrentTableHeaderInfo.LanguageCodeDescription, StringFormat=Codepage: {0}}"
-                                           Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12" TextWrapping="Wrap"/>
+                                <GridSplitter Grid.Row="2" Height="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Cursor="SizeNS" ResizeBehavior="PreviousAndNext">
+                                    <GridSplitter.Template>
+                                        <ControlTemplate TargetType="GridSplitter">
+                                            <Border Background="{DynamicResource DividerBrush}" CornerRadius="2"/>
+                                        </ControlTemplate>
+                                    </GridSplitter.Template>
+                                </GridSplitter>
 
-                                <TextBlock Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
-                                           Text="{Binding CurrentTableHeaderInfo.LastUpdated, StringFormat=Última actualización: {0:dd/MM/yyyy}}"
-                                           Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12" TextWrapping="Wrap"/>
+                                <Grid Grid.Row="3">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
 
-                                <TextBlock Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
-                                           Text="{Binding CurrentTableHeaderInfo.FullPath, StringFormat=Ruta: {0}}"
-                                           Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12" TextWrapping="Wrap"/>
+                                    <Border Grid.Row="0" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,1,0,1" Padding="12,8">
+                                        <DockPanel>
+                                            <TextBlock Text="ESTRUCTURA" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource CaptionTextBrush}" VerticalAlignment="Center"/>
+                                            <Button DockPanel.Dock="Right" Style="{StaticResource IconButtonStyle}" Command="{Binding DataContext.CopyStructureCommand, RelativeSource={RelativeSource AncestorType=Window}}" ToolTip="Copiar estructura" Width="26" Height="26">
+                                                <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="13"/>
+                                            </Button>
+                                        </DockPanel>
+                                    </Border>
+
+                                    <Expander Grid.Row="1" Header="Datos de cabecera" IsExpanded="False">
+                                        <Grid Margin="12,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding DataContext.CurrentTableHeaderInfo.RecordCount, RelativeSource={RelativeSource AncestorType=Window}, StringFormat=Registros: {0}}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
+                                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding DataContext.CurrentTableHeaderInfo.FieldCount, RelativeSource={RelativeSource AncestorType=Window}, StringFormat=Campos: {0}}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding DataContext.CurrentTableHeaderInfo.HeaderSize, RelativeSource={RelativeSource AncestorType=Window}, StringFormat=Cabecera: {0} bytes}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding DataContext.CurrentTableHeaderInfo.RecordSize, RelativeSource={RelativeSource AncestorType=Window}, StringFormat=Registro: {0} bytes}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding DataContext.CurrentTableHeaderInfo.FileTypeDescription, RelativeSource={RelativeSource AncestorType=Window}, StringFormat=Tipo: {0}}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
+                                            <TextBlock Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding DataContext.CurrentTableHeaderInfo.FullPath, RelativeSource={RelativeSource AncestorType=Window}, StringFormat=Ruta: {0}}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12" TextWrapping="Wrap"/>
+                                        </Grid>
+                                    </Expander>
+
+                                    <Border Grid.Row="2" Padding="12,6,12,4" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,0,0,1">
+                                        <TextBlock Text="{Binding DataContext.CurrentTableDisplayName, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                                    </Border>
+
+                                    <Border Grid.Row="3" Padding="12,8" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,0,0,1">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                <Button Style="{StaticResource IconButtonStyle}" Command="{Binding DataContext.SaveCodePageToTableCommand, RelativeSource={RelativeSource AncestorType=Window}}" ToolTip="Guardar codepage" Width="28" Height="28">
+                                                    <TextBlock Text="&#xE74E;" FontFamily="Segoe MDL2 Assets" FontSize="13"/>
+                                                </Button>
+                                                <Button Style="{StaticResource IconButtonStyle}" Command="{Binding DataContext.ApplyCodePageCommand, RelativeSource={RelativeSource AncestorType=Window}}" ToolTip="Reabrir con codepage" Width="28" Height="28">
+                                                    <TextBlock Text="&#xE777;" FontFamily="Segoe MDL2 Assets" FontSize="13"/>
+                                                </Button>
+                                            </StackPanel>
+                                            <ComboBox ItemsSource="{Binding DataContext.AvailableCodePages, RelativeSource={RelativeSource AncestorType=Window}}" SelectedItem="{Binding DataContext.SelectedCodePageOption, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}" DisplayMemberPath="Label" Width="145"/>
+                                        </DockPanel>
+                                    </Border>
+
+                                    <DataGrid Grid.Row="4" ItemsSource="{Binding DataContext.CurrentTableStructure, RelativeSource={RelativeSource AncestorType=Window}}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" SelectionMode="Single" BorderThickness="0">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Campo" Binding="{Binding Name}" Width="*"/>
+                                            <DataGridTextColumn Header="Tipo" Binding="{Binding Type}" Width="60"/>
+                                            <DataGridTextColumn Header="Len" Binding="{Binding Length}" Width="40"/>
+                                            <DataGridTextColumn Header="Dec" Binding="{Binding DecimalCount}" Width="40"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </Grid>
                             </Grid>
-                        </Expander>
-
-                        <!-- Nombre de la tabla activa -->
-                        <Border Grid.Row="2"
-                                Padding="12,6,12,4"
-                                BorderBrush="{DynamicResource DividerBrush}"
-                                BorderThickness="0,0,0,1">
-                            <TextBlock Text="{Binding CurrentTableDisplayName}"
-                                       Foreground="{DynamicResource SecondaryTextBrush}"
-                                       FontSize="12"
-                                       TextTrimming="CharacterEllipsis"/>
                         </Border>
+                    </ControlTemplate>
 
-                        <!-- Selector de codepage -->
-                        <Border Grid.Row="3"
-                                Padding="12,8"
-                                BorderBrush="{DynamicResource DividerBrush}"
-                                BorderThickness="0,0,0,1">
+                    <DataTemplate DataType="{x:Type vm:TableTabViewModel}">
+                        <Control Template="{StaticResource FileExplorerTemplate}"/>
+                    </DataTemplate>
+
+                    <DataTemplate DataType="{x:Type vm:SqlConsoleViewModel}">
+                        <Border Background="{DynamicResource LayerBackgroundBrush}" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1" CornerRadius="8">
                             <DockPanel>
-                                <!-- Botones de acción (derecha) -->
-                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Button Style="{StaticResource IconButtonStyle}"
-                                            Command="{Binding SaveCodePageToTableCommand}"
-                                            ToolTip="Guardar código de página en la cabecera del DBF"
-                                            Width="28" Height="28" Padding="0"
-                                            Margin="4,0,0,0">
-                                        <TextBlock Text="&#xE74E;" FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                                   VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                                    </Button>
-                                    <Button Style="{StaticResource IconButtonStyle}"
-                                            Command="{Binding ApplyCodePageCommand}"
-                                            ToolTip="Reabrir tabla con este código de página"
-                                            Width="28" Height="28" Padding="0"
-                                            Margin="4,0,0,0">
-                                        <TextBlock Text="&#xE777;" FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                                   VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                                    </Button>
-                                </StackPanel>
-
-                                <!-- Selector de codepage (izquierda) -->
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="Código de página:"
-                                               VerticalAlignment="Center"
-                                               Foreground="{DynamicResource SecondaryTextBrush}"
-                                               Margin="0,0,8,0"/>
-
-                                    <ComboBox ItemsSource="{Binding AvailableCodePages}"
-                                              SelectedItem="{Binding SelectedCodePageOption, Mode=TwoWay}"
-                                              DisplayMemberPath="Label"
-                                              Width="145"/>
-                                </StackPanel>
+                                <Border DockPanel.Dock="Top" Background="{DynamicResource SubLayerBackgroundBrush}" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,0,0,1" CornerRadius="8,8,0,0" Padding="12,10">
+                                    <TextBlock Text="ESQUEMA DE TABLAS" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource CaptionTextBrush}"/>
+                                </Border>
+                                <TreeView ItemsSource="{Binding SchemaItems}" BorderThickness="0" Background="Transparent" Margin="4">
+                                    <TreeView.ItemContainerStyle>
+                                        <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                                            <Setter Property="Padding" Value="4,2"/>
+                                            <Setter Property="infra:EventBindingHelper.MouseDoubleClickCommand" Value="{Binding DataContext.InsertItemCommand, RelativeSource={RelativeSource AncestorType=TreeView}}"/>
+                                            <Setter Property="infra:EventBindingHelper.MouseDoubleClickCommandParameter" Value="{Binding}"/>
+                                        </Style>
+                                    </TreeView.ItemContainerStyle>
+                                    <TreeView.ItemTemplate>
+                                        <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                                <TextBlock Text="{Binding Icon}" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                                                <TextBlock Text="{Binding Details}" FontSize="10" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource CaptionTextBrush}"/>
+                                            </StackPanel>
+                                        </HierarchicalDataTemplate>
+                                    </TreeView.ItemTemplate>
+                                </TreeView>
                             </DockPanel>
                         </Border>
+                    </DataTemplate>
+                </ContentControl.Resources>
 
-                        <!-- DataGrid de estructura -->
-                        <DataGrid Grid.Row="4"
-                                  ItemsSource="{Binding CurrentTableStructure}"
-                                  AutoGenerateColumns="False"
-                                  IsReadOnly="True"
-                                  HeadersVisibility="Column"
-                                  CanUserAddRows="False"
-                                  CanUserDeleteRows="False"
-                                  CanUserResizeRows="False"
-                                  SelectionMode="Single"
-                                  BorderThickness="0"
-                                  Margin="0,0,0,0">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Campo"
-                                                    Binding="{Binding Name}"
-                                                    Width="*"/>
-                                <DataGridTextColumn Header="Tipo"
-                                                    Binding="{Binding Type}"
-                                                    Width="80"/>
-                                <DataGridTextColumn Header="Len"
-                                                    Binding="{Binding Length}"
-                                                    Width="48"/>
-                                <DataGridTextColumn Header="Dec"
-                                                    Binding="{Binding DecimalCount}"
-                                                    Width="48"/>
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </Grid>
-                </Grid>
-            </Border>
+                <ContentControl.Style>
+                    <Style TargetType="ContentControl">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Content, RelativeSource={RelativeSource Self}}" Value="{x:Null}">
+                                <Setter Property="Template" Value="{StaticResource FileExplorerTemplate}"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ContentControl.Style>
+            </ContentControl>
 
             <!-- Splitter derecho -->
             <GridSplitter Grid.Column="3"
@@ -528,7 +452,7 @@
                                        FontSize="14"
                                        Foreground="{DynamicResource SecondaryTextBrush}"
                                        HorizontalAlignment="Center"/>
-                                                        <TextBlock Text="Seleccioná una conexión, elegí un archivo y hacé doble clic o presioná Abrir DBF."
+                            <TextBlock Text="Seleccioná una conexión, elegí un archivo y hacé doble clic o presioná Abrir DBF."
                                        FontSize="12"
                                        Foreground="{DynamicResource CaptionTextBrush}"
                                        HorizontalAlignment="Center"
@@ -550,7 +474,6 @@
                     </Border>
 
                     <!-- TabControl con soporte para múltiples tipos de contenido -->
-
                     <infra:CachedTabControl ItemsSource="{Binding OpenTables}"
                                             SelectedItem="{Binding SelectedOpenTable, Mode=TwoWay}">
                         <infra:CachedTabControl.Resources>
@@ -683,6 +606,7 @@
                                             <TextBox Text="{Binding SqlQuery, UpdateSourceTrigger=PropertyChanged}"
                                                      infra:TextBoxHelper.BindSelection="True"
                                                      infra:TextBoxHelper.SelectedText="{Binding SelectedText, Mode=TwoWay}"
+                                                     infra:TextBoxHelper.CaretIndex="{Binding CaretIndex, Mode=TwoWay}"
                                                      AcceptsReturn="True"
                                                      AcceptsTab="True"
                                                      FontFamily="Consolas"

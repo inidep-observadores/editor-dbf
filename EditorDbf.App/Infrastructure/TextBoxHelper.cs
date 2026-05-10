@@ -15,6 +15,16 @@ public static class TextBoxHelper
     public static string GetSelectedText(DependencyObject obj) => (string)obj.GetValue(SelectedTextProperty);
     public static void SetSelectedText(DependencyObject obj, string value) => obj.SetValue(SelectedTextProperty, value);
 
+    public static readonly DependencyProperty CaretIndexProperty =
+        DependencyProperty.RegisterAttached(
+            "CaretIndex",
+            typeof(int),
+            typeof(TextBoxHelper),
+            new FrameworkPropertyMetadata(0, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnCaretIndexChanged));
+
+    public static int GetCaretIndex(DependencyObject obj) => (int)obj.GetValue(CaretIndexProperty);
+    public static void SetCaretIndex(DependencyObject obj, int value) => obj.SetValue(CaretIndexProperty, value);
+
     public static readonly DependencyProperty BindSelectionProperty =
         DependencyProperty.RegisterAttached(
             "BindSelection",
@@ -40,11 +50,30 @@ public static class TextBoxHelper
         }
     }
 
+    private static void OnCaretIndexChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is TextBox textBox && (int)e.NewValue != textBox.CaretIndex)
+        {
+            textBox.CaretIndex = (int)e.NewValue;
+        }
+    }
+
     private static void OnSelectionChanged(object sender, RoutedEventArgs e)
     {
         if (sender is TextBox textBox)
         {
             SetSelectedText(textBox, textBox.SelectedText);
+            SetCaretIndex(textBox, textBox.CaretIndex);
         }
+    }
+
+    public static void InsertText(TextBox textBox, string text)
+    {
+        if (textBox == null) return;
+
+        int index = textBox.CaretIndex;
+        textBox.Text = textBox.Text.Insert(index, text);
+        textBox.CaretIndex = index + text.Length;
+        textBox.Focus();
     }
 }
