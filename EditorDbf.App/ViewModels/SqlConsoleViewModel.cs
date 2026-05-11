@@ -12,15 +12,6 @@ using EditorDbf.App.Models;
 
 namespace EditorDbf.App.ViewModels;
 
-public class SqlSchemaItem
-{
-    public string Name { get; set; } = string.Empty;
-    public string SqlName { get; set; } = string.Empty;
-    public string Icon { get; set; } = string.Empty;
-    public string Details { get; set; } = string.Empty;
-    public ObservableCollection<SqlSchemaItem> Children { get; } = new();
-}
-
 public sealed class SqlConsoleViewModel : ObservableObject
 {
     private readonly DbfSqlService _sqlService;
@@ -126,7 +117,26 @@ public sealed class SqlConsoleViewModel : ObservableObject
     {
         if (item == null) return;
         
-        string textToInsert = item.SqlName;
+        // Buscar todos los ítems marcados en el esquema
+        var checkedItems = SchemaItems
+            .SelectMany(GetFlatList)
+            .Where(i => i.IsChecked && i.Children.Count == 0) // Solo campos marcados, no tablas
+            .ToList();
+
+        string textToInsert;
+        if (checkedItems.Any())
+        {
+            textToInsert = string.Join(", ", checkedItems.Select(i => i.SqlName));
+            // Limpiar selección después de insertar
+            foreach (var i in checkedItems) i.IsChecked = false;
+            // También limpiar el check de las tablas padres si se marcaron
+            foreach (var table in SchemaItems) table.IsChecked = false;
+        }
+        else
+        {
+            textToInsert = item.SqlName;
+        }
+
         string currentText = SqlQuery ?? string.Empty;
         
         // Capturamos el índice actual localmente para que no se pierda durante la actualización del texto
@@ -142,13 +152,24 @@ public sealed class SqlConsoleViewModel : ObservableObject
         SqlQuery = currentText.Insert(indexToInsertAt, textToInsert);
         
         // Actualizar el CaretIndex al final de la inserción para posicionar el cursor tras el texto insertado
-        // Al asignar esto después de SqlQuery, forzamos que la UI mueva el cursor al lugar correcto
         CaretIndex = indexToInsertAt + textToInsert.Length;
         
         // Disparamos el foco de vuelta al editor
-        // Hacemos un ciclo true -> false para asegurar que el bindeo detecte el cambio siempre
         TriggerFocus = true;
         TriggerFocus = false;
+    }
+
+    private IEnumerable<SqlSchemaItem> GetFlatList(SqlSchemaItem item)
+    {
+        yield return item;
+        foreach (var child in item.Children)
+        {
+            foreach (var flatChild in GetFlatList(child))
+            {
+                flatChild.Parent = item; // Aprovechamos para asignar el padre si falta
+                yield return flatChild;
+            }
+        }
     }
 
     private async Task LoadSchemaAsync()

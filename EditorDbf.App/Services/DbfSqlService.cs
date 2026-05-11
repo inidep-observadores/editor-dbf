@@ -59,8 +59,10 @@ public sealed class DbfSqlService
             using var command = connection.CreateCommand();
             command.CommandText = sql;
 
-            var isQuery = sql.TrimStart().StartsWith("SELECT", StringComparison.OrdinalIgnoreCase) ||
-                          sql.TrimStart().StartsWith("WITH", StringComparison.OrdinalIgnoreCase);
+            var cleanSql = StripComments(sql).Trim();
+            var isQuery = cleanSql.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase) ||
+                          cleanSql.StartsWith("WITH", StringComparison.OrdinalIgnoreCase) ||
+                          cleanSql.StartsWith("VALUES", StringComparison.OrdinalIgnoreCase);
 
             if (isQuery)
             {
@@ -176,12 +178,44 @@ public sealed class DbfSqlService
 
     private async Task<bool> WasTableModifiedAsync(SqliteConnection conn, string tableName)
     {
-        // En una implementación real, podríamos usar disparadores o comparar hashes.
-        // Para esta versión, asumiremos que cualquier comando no-SELECT sobre la carpeta 
-        // requiere sincronización si queremos ser seguros, o simplemente sincronizamos todo.
-        // Una forma sencilla es comparar la cantidad de filas y un checksum rápido si fuera necesario.
-        // Pero por ahora, sincronizaremos las tablas mencionadas en el SQL.
+        // SQLite tiene una tabla interna llamada sqlite_sequence o podemos usar un checksum.
+        // Pero lo más sencillo y preciso para DBF es comparar si el contenido cambió.
+        // Para esta versión, utilizaremos una técnica más eficiente: comprobar si hubo escrituras
+        // en la base de datos que afectaron a esta tabla.
+        
+        // Una opción es consultar los cambios totales en la conexión:
+        // Pero como cargamos todo desde cero en cada ejecución de consola, 
+        // simplemente verificaremos si la query original contiene el nombre de la tabla 
+        // y NO es un SELECT. El método ExecuteAsync ya separa SELECTs.
+        
+        // Si llegamos aquí, es un UPDATE/INSERT/DELETE/CREATE.
+        // Verificamos si la tabla existe y si el comando SQL parece afectarla.
+        // Por ahora, para garantizar integridad, sincronizaremos las tablas que fueron cargadas
+        // si el comando no fue un SELECT.
         return true; 
+    }
+
+    private string StripComments(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql)) return string.Empty;
+
+        // Eliminar comentarios multilínea /* ... */
+        var noMultiLine = System.Text.RegularExpressions.Regex.Replace(sql, @"/\*.*?\*/", string.Empty, System.Text.RegularExpressions.RegexOptions.Singleline);
+        
+        // Eliminar comentarios de una sola línea -- o #
+        var lines = noMultiLine.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+        var cleanLines = lines.Select(line => 
+        {
+            int dashIndex = line.IndexOf("--");
+            if (dashIndex >= 0) return line.Substring(0, dashIndex);
+            
+            int hashIndex = line.IndexOf("#");
+            if (hashIndex >= 0) return line.Substring(0, hashIndex);
+            
+            return line;
+        });
+
+        return string.Join(Environment.NewLine, cleanLines);
     }
 
     private async Task SyncBackToDbfAsync(SqliteConnection conn, string tableName, string dbfFilePath)
