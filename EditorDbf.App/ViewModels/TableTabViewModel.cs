@@ -8,6 +8,8 @@ using System.Linq;
 using System.Windows.Input;
 using EditorDbf.App.Infrastructure;
 using EditorDbf.App.Models;
+using EditorDbf.App.Services;
+using EditorDbf.App.Views;
 
 namespace EditorDbf.App.ViewModels;
 
@@ -21,7 +23,8 @@ public sealed class TableTabViewModel : ObservableObject
     private string? _selectedFilterColumn;
     private string _selectedFilterOperator = "=";
     private string _filterValue = string.Empty;
-    private string _currentFilterText = "(sin filtro)";
+    private string _currentFilterText = string.Empty;
+    private string _sqlFilter = string.Empty;
     private readonly List<DataRowView> _selectedRecords = [];
 
     public TableTabViewModel(
@@ -38,10 +41,16 @@ public sealed class TableTabViewModel : ObservableObject
 
         CloseCommand = new RelayCommand(() => closeAction(this));
         ApplyFilterCommand = new RelayCommand(ApplyFilter, CanApplyFilter);
-        ClearFilterCommand = new RelayCommand(ClearFilter, () => CurrentTableView is not null);
+        ClearFilterCommand = new RelayCommand(ClearFilter, () => IsFilterActive);
         ExportCommand = new RelayCommand(ExportTable);
+        
+        // Nuevos comandos para filtrado avanzado
+        ApplySqlFilterCommand = new RelayCommand(ApplySqlFilter);
+        FilterByValueCommand = new RelayCommand<object>(FilterByValue);
+        FilterCustomCommand = new RelayCommand(() => FilterCustom(LastRightClickedCellInfo));
 
         SubscribeToDataTable();
+        UpdateRecordCounts();
     }
 
     public string FilePath => _document.FilePath;
@@ -66,6 +75,9 @@ public sealed class TableTabViewModel : ObservableObject
 
     public ICommand ClearFilterCommand { get; }
     public ICommand ExportCommand { get; }
+    public ICommand ApplySqlFilterCommand { get; }
+    public ICommand FilterByValueCommand { get; }
+    public ICommand FilterCustomCommand { get; }
 
     public DataView CurrentTableView => _document.DataTable.DefaultView;
 
@@ -132,6 +144,23 @@ public sealed class TableTabViewModel : ObservableObject
     }
 
     public bool IsFilterActive => !string.IsNullOrWhiteSpace(_document.DataTable.DefaultView.RowFilter);
+
+    public string SqlFilter
+    {
+        get => _sqlFilter;
+        set => SetProperty(ref _sqlFilter, value);
+    }
+
+    public FilterParams? LastRightClickedCellInfo
+    {
+        get => _lastRightClickedCellInfo;
+        set => SetProperty(ref _lastRightClickedCellInfo, value);
+    }
+    private FilterParams? _lastRightClickedCellInfo;
+
+    public int TotalRecords => _document.DataTable.Rows.Count;
+    
+    public int FilteredRecords => CurrentTableView.Count;
 
     public bool HasPendingChanges
     {
@@ -303,15 +332,71 @@ public sealed class TableTabViewModel : ObservableObject
         }
 
         var expression = BuildFilterExpression(column, SelectedFilterOperator, FilterValue);
-        _document.DataTable.DefaultView.RowFilter = expression;
-        CurrentFilterText = string.IsNullOrWhiteSpace(expression) ? "(sin filtro)" : expression;
+        ApplyFilterExpression(expression);
+    }
+
+    private void ApplyFilter(FilterParams p)
+    {
+        var column = _document.DataTable.Columns[p.ColumnName];
+        if (column == null) return;
+
+        var expression = BuildFilterExpression(column, p.Operator, p.Value?.ToString() ?? string.Empty);
+        ApplyFilterExpression(expression);
+    }
+
+    private void ApplySqlFilter()
+    {
+        ApplyFilterExpression(SqlFilter);
+    }
+
+    private void ApplyFilterExpression(string expression)
+    {
+        try
+        {
+            _document.DataTable.DefaultView.RowFilter = expression;
+            SqlFilter = expression;
+            CurrentFilterText = string.IsNullOrWhiteSpace(expression) ? string.Empty : expression;
+            UpdateRecordCounts();
+            NotifyCommands();
+        }
+        catch (Exception ex)
+        {
+            // Podríamos mostrar un mensaje de error si la expresión SQL es inválida
+            System.Windows.MessageBox.Show($"Filtro inválido: {ex.Message}", "Error de Filtro", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+        }
+    }
+
+    private void FilterCustom(FilterParams? p)
+    {
+        if (p == null) return;
+
+        var newValue = InputDialog.Show(
+            $"Ingrese valor para el filtro [{p.ColumnName}] {p.Operator}:",
+            "Filtro Personalizado",
+            p.Value?.ToString() ?? string.Empty);
+
+        if (newValue != null)
+        {
+            ApplyFilter(p with { Value = newValue });
+        }
+    }
+
+    private void FilterByValue(object? parameter)
+    {
+        if (parameter is not FilterParams p) return;
+        ApplyFilter(p);
+    }
+
+    private void UpdateRecordCounts()
+    {
+        OnPropertyChanged(nameof(TotalRecords));
+        OnPropertyChanged(nameof(FilteredRecords));
     }
 
     private void ClearFilter()
     {
-        _document.DataTable.DefaultView.RowFilter = string.Empty;
+        ApplyFilterExpression(string.Empty);
         FilterValue = string.Empty;
-        CurrentFilterText = "(sin filtro)";
     }
 
     private void SubscribeToDataTable()

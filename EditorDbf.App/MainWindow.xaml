@@ -18,6 +18,10 @@
         Background="{DynamicResource AppBackgroundBrush}"
         Foreground="{DynamicResource PrimaryTextBrush}">
 
+    <Window.Resources>
+        <infra:FilterParamOperatorConverter x:Key="FilterParamOperatorConverter"/>
+    </Window.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>  <!-- Toolbar -->
@@ -505,83 +509,63 @@
                         </Border.Style>
                     </Border>
 
-                    <!-- TabControl con soporte para múltiples tipos de contenido -->
                     <infra:CachedTabControl ItemsSource="{Binding OpenTables}"
                                             SelectedItem="{Binding SelectedOpenTable, Mode=TwoWay}">
                         <infra:CachedTabControl.Resources>
-                            <!-- Template para Tablas DBF -->
                             <DataTemplate DataType="{x:Type vm:TableTabViewModel}">
                                 <Grid>
                                     <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>  <!-- Barra de filtro -->
-                                        <RowDefinition Height="Auto"/>  <!-- Filtro activo -->
-                                        <RowDefinition Height="*"/>     <!-- DataGrid -->
+                                        <RowDefinition Height="Auto"/> <!-- Filtro SQL -->
+                                        <RowDefinition Height="Auto"/> <!-- Indicador activo -->
+                                        <RowDefinition Height="*"/>    <!-- DataGrid -->
+                                        <RowDefinition Height="Auto"/> <!-- Footer -->
                                     </Grid.RowDefinitions>
 
-                                    <!-- Barra de filtro -->
+                                    <!-- Barra de filtro SQL -->
                                     <Border Grid.Row="0"
                                             Background="{DynamicResource SubLayerBackgroundBrush}"
                                             BorderBrush="{DynamicResource DividerBrush}"
                                             BorderThickness="0,0,0,1"
-                                            Padding="8,6">
+                                            Padding="8,4">
                                         <DockPanel>
-                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                <TextBlock Text="Filtro:"
-                                                           Foreground="{DynamicResource SecondaryTextBrush}"
-                                                           FontSize="11"
-                                                           VerticalAlignment="Center"
-                                                           Margin="0,0,6,0"/>
-                                                <ComboBox Width="155"
-                                                          Margin="0,0,6,0"
-                                                          ItemsSource="{Binding FilterColumns}"
-                                                          SelectedItem="{Binding SelectedFilterColumn, Mode=TwoWay}"
-                                                          ToolTip="Seleccionar columna"/>
-                                                <ComboBox Width="100"
-                                                          Margin="0,0,6,0"
-                                                          ItemsSource="{Binding FilterOperators}"
-                                                          SelectedItem="{Binding SelectedFilterOperator, Mode=TwoWay}"
-                                                          ToolTip="Seleccionar operador"/>
-                                                <TextBox Width="160"
-                                                         Text="{Binding FilterValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                         ToolTip="Ingresar valor del filtro">
-                                                    <TextBox.InputBindings>
-                                                        <KeyBinding Key="Enter" Command="{Binding ApplyFilterCommand}"/>
-                                                        <KeyBinding Key="Escape" Command="{Binding ClearFilterCommand}"/>
-                                                    </TextBox.InputBindings>
-                                                </TextBox>
+                                            <Button DockPanel.Dock="Left"
+                                                    Style="{StaticResource IconButtonStyle}"
+                                                    ToolTip="Filtro rápido"
+                                                    Margin="0,0,4,0"
+                                                    Width="28" Height="28">
+                                                <TextBlock Text="&#xE71C;" FontFamily="Segoe MDL2 Assets" FontSize="14" 
+                                                           Foreground="{DynamicResource AccentBrush}"/>
+                                            </Button>
 
-                                                <Button Style="{StaticResource IconButtonStyle}"
-                                                        Command="{Binding ApplyFilterCommand}"
-                                                        ToolTip="Aplicar filtro"
-                                                        Width="28" Height="28" Padding="0"
-                                                        Margin="6,0,0,0">
-                                                    <TextBlock Text="&#xE71C;" FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                                               VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                                                </Button>
-                                                <Button Style="{StaticResource IconButtonStyle}"
-                                                        Command="{Binding ClearFilterCommand}"
-                                                        ToolTip="Quitar filtro"
-                                                        Width="28" Height="28" Padding="0"
-                                                        Margin="4,0,0,0">
-                                                    <TextBlock Text="&#xEA99;" FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                                               VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                                                </Button>
-                                                <Button Style="{StaticResource IconButtonStyle}"
-                                                        Command="{Binding ExportCommand}"
-                                                        ToolTip="Exportar datos filtrados y ordenados"
-                                                        Width="70" Height="28" Padding="0"
-                                                        Margin="4,0,0,0">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="Exportar" VerticalAlignment="Center" FontSize="11" Margin="0,0,4,0"/>
-                                                        <TextBlock Text="&#xE8B5;" FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                                                   VerticalAlignment="Center">
-                                                            <TextBlock.LayoutTransform>
-                                                                <RotateTransform Angle="180"/>
-                                                            </TextBlock.LayoutTransform>
-                                                        </TextBlock>
-                                                    </StackPanel>
-                                                </Button>
-                                            </StackPanel>
+                                            <Button DockPanel.Dock="Right"
+                                                    Style="{StaticResource IconButtonStyle}"
+                                                    Command="{Binding ClearFilterCommand}"
+                                                    ToolTip="Quitar filtro"
+                                                    Width="28" Height="28"
+                                                    Margin="4,0,0,0">
+                                                <TextBlock Text="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                                           Foreground="{DynamicResource DangerBrush}"/>
+                                            </Button>
+
+                                            <Button DockPanel.Dock="Right"
+                                                    Style="{StaticResource PrimaryButtonStyle}"
+                                                    Command="{Binding ApplySqlFilterCommand}"
+                                                    ToolTip="Aplicar filtro (Enter)"
+                                                    Width="32" Height="28" Padding="0"
+                                                    Margin="4,0,0,0">
+                                                <TextBlock Text="&#xE768;" FontFamily="Segoe MDL2 Assets" FontSize="12"/>
+                                            </Button>
+
+                                            <TextBox Text="{Binding SqlFilter, UpdateSourceTrigger=PropertyChanged}"
+                                                     FontFamily="Consolas"
+                                                     FontSize="13"
+                                                     VerticalContentAlignment="Center"
+                                                     Padding="6,2">
+                                                <TextBox.InputBindings>
+                                                    <KeyBinding Key="Enter" Command="{Binding ApplySqlFilterCommand}"/>
+                                                    <KeyBinding Key="Escape" Command="{Binding ClearFilterCommand}"/>
+                                                </TextBox.InputBindings>
+                                            </TextBox>
                                         </DockPanel>
                                     </Border>
 
@@ -603,10 +587,12 @@
 
                                     <!-- DataGrid -->
                                     <DataGrid Grid.Row="2"
+                                              x:Name="TableDataGrid"
                                               ItemsSource="{Binding CurrentTableView}"
                                               SelectedItem="{Binding SelectedRecord, Mode=TwoWay}"
                                               SelectionChanged="TableDataGrid_OnSelectionChanged"
                                               AutoGeneratingColumn="TableDataGrid_OnAutoGeneratingColumn"
+                                              PreviewMouseRightButtonDown="TableDataGrid_OnPreviewMouseRightButtonDown"
                                               AutoGenerateColumns="True"
                                               CanUserAddRows="False"
                                               CanUserDeleteRows="False"
@@ -618,7 +604,63 @@
                                               VirtualizingStackPanel.IsVirtualizing="True"
                                               VirtualizingStackPanel.VirtualizationMode="Recycling"
                                               EnableRowVirtualization="True"
-                                              EnableColumnVirtualization="True"/>
+                                              EnableColumnVirtualization="True">
+                                        <DataGrid.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="Filtrar por valor" Icon="{infra:Icon Text=&#xE71C;}">
+                                                    <MenuItem Header="Es igual" 
+                                                              Command="{Binding FilterByValueCommand}" CommandParameter="{Binding LastRightClickedCellInfo}"/>
+                                                    <MenuItem Header="Es distinto"
+                                                              Command="{Binding FilterByValueCommand}" CommandParameter="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterParamOperatorConverter}, ConverterParameter='&lt;&gt;'}"/>
+                                                    <MenuItem Header="Es mayor que"
+                                                              Command="{Binding FilterByValueCommand}" CommandParameter="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterParamOperatorConverter}, ConverterParameter='&gt;'}"/>
+                                                    <MenuItem Header="Es menor que"
+                                                              Command="{Binding FilterByValueCommand}" CommandParameter="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterParamOperatorConverter}, ConverterParameter='&lt;'}"/>
+                                                    <MenuItem Header="Contiene"
+                                                              Command="{Binding FilterByValueCommand}" CommandParameter="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterParamOperatorConverter}, ConverterParameter='CONTIENE'}"/>
+                                                    <Separator/>
+                                                    <MenuItem Header="Personalizado..." Icon="{infra:Icon Text=&#xE70F;}">
+                                                        <MenuItem Header="Es igual a ..."
+                                                                  Command="{Binding FilterCustomCommand}" CommandParameter="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterParamOperatorConverter}, ConverterParameter='='}"/>
+                                                        <MenuItem Header="Es distinto de ..."
+                                                                  Command="{Binding FilterCustomCommand}" CommandParameter="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterParamOperatorConverter}, ConverterParameter='&lt;&gt;'}"/>
+                                                        <MenuItem Header="Contiene ..."
+                                                                  Command="{Binding FilterCustomCommand}" CommandParameter="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterParamOperatorConverter}, ConverterParameter='CONTIENE'}"/>
+                                                    </MenuItem>
+                                                </MenuItem>
+                                                <Separator/>
+                                                <MenuItem Header="Quitar todos los filtros" Command="{Binding ClearFilterCommand}" Icon="{infra:Icon Text=&#xE894;}"/>
+                                                <Separator/>
+                                                <MenuItem Header="Copiar" Command="Copy" Icon="{infra:Icon Text=&#xE8C8;}"/>
+                                                <MenuItem Header="Exportar..." Command="{Binding ExportCommand}" Icon="{infra:Icon Text=&#xE78C;}"/>
+                                            </ContextMenu>
+                                        </DataGrid.ContextMenu>
+                                    </DataGrid>
+
+                                    <!-- Pie de página (Contadores) -->
+                                    <Border Grid.Row="3"
+                                            Background="{DynamicResource SubLayerBackgroundBrush}"
+                                            BorderBrush="{DynamicResource DividerBrush}"
+                                            BorderThickness="0,1,0,0"
+                                            Padding="12,4">
+                                        <DockPanel>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="12" 
+                                                           Foreground="{DynamicResource CaptionTextBrush}" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                <TextBlock Text="Registros: " Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
+                                                <TextBlock Text="{Binding FilteredRecords}" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" FontSize="12"/>
+                                                <TextBlock Text=" de " Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
+                                                <TextBlock Text="{Binding TotalRecords}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
+                                            </StackPanel>
+
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center"
+                                                        Visibility="{Binding IsFilterActive, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                <Border Background="{DynamicResource AccentSubtleBrush}" CornerRadius="4" Padding="8,2">
+                                                    <TextBlock Text="Filtro Activo" FontSize="11" Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold"/>
+                                                </Border>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
                                 </Grid>
                             </DataTemplate>
 

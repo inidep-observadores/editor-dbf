@@ -6,6 +6,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Data;
+using System.Windows.Media;
+using EditorDbf.App.Models;
 using EditorDbf.App.ViewModels;
 
 namespace EditorDbf.App;
@@ -78,5 +80,33 @@ public partial class MainWindow : Window
             if (textColumn.Binding is Binding binding)
                 binding.StringFormat = "dd/MM/yyyy";
         }
+    }
+
+    private void TableDataGrid_OnPreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not DataGrid dataGrid) return;
+
+        var hitTestResult = VisualTreeHelper.HitTest(dataGrid, e.GetPosition(dataGrid));
+        if (hitTestResult?.VisualHit == null) return;
+
+        var cell = FindVisualParent<DataGridCell>(hitTestResult.VisualHit);
+        if (cell == null) return;
+
+        if (dataGrid.DataContext is TableTabViewModel viewModel)
+        {
+            var columnName = cell.Column.Header?.ToString() ?? string.Empty;
+            var rowView = cell.DataContext as DataRowView;
+            var cellValue = rowView?[columnName];
+
+            viewModel.LastRightClickedCellInfo = new FilterParams(columnName, "=", cellValue);
+        }
+    }
+
+    private static T? FindVisualParent<T>(DependencyObject child) where T : DependencyObject
+    {
+        var parentObject = VisualTreeHelper.GetParent(child);
+        if (parentObject == null) return null;
+        if (parentObject is T parent) return parent;
+        return FindVisualParent<T>(parentObject);
     }
 }
