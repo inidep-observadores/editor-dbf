@@ -7,7 +7,7 @@
         xmlns:vm="clr-namespace:EditorDbf.App.ViewModels"
         mc:Ignorable="d"
         Title="Editor DBF"
-        Icon="Assets/app_icon.png"
+        Icon="Assets/app_icon.ico"
         WindowState="Maximized"
         Height="900"
         Width="1500"

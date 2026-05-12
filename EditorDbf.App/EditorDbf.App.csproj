@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <ApplicationIcon>Assets\app_icon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,6 +16,6 @@
     <PackageReference Include="System.Text.Encoding.CodePages" Version="10.0.7" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Assets\app_icon.png" />
+    <Resource Include="Assets\app_icon.ico" />
   </ItemGroup>
 </Project>
