@@ -19,6 +19,16 @@
 
 !insertmacro MUI_LANGUAGE "Spanish"
 
+!include "x64.nsh"
+
+Function .onInit
+    ${If} ${RunningX64}
+    ${Else}
+        MessageBox MB_OK|MB_ICONSTOP "Este instalador requiere una versión de Windows de 64 bits."
+        Abort
+    ${EndIf}
+FunctionEnd
+
 Section "Install"
     SetOutPath "$INSTDIR"
     
@@ -53,6 +63,7 @@ SectionEnd
 
 OutFile "EditorDbf_Setup.exe"
 Name "${APP_NAME}"
-InstallDir "$PROGRAMFILES\${INSTALL_DIR}"
+InstallDir "$PROGRAMFILES64\${INSTALL_DIR}"
 ShowInstDetails show
 ShowUninstDetails show
+
