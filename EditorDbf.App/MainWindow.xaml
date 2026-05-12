@@ -607,6 +607,10 @@
                                               EnableColumnVirtualization="True">
                                         <DataGrid.ContextMenu>
                                             <ContextMenu>
+                                                <MenuItem Header="Cambiar valor..." 
+                                                          Icon="{infra:Icon Text=&#xE70F;}"
+                                                          Command="{Binding ChangeValueCommand}"/>
+                                                <Separator/>
                                                 <MenuItem Header="Filtrar por valor" Icon="{infra:Icon Text=&#xE71C;}">
                                                     <MenuItem Header="Es igual" 
                                                               Command="{Binding FilterByValueCommand}" CommandParameter="{Binding LastRightClickedCellInfo}"/>

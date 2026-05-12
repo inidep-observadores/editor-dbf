@@ -48,6 +48,7 @@ public sealed class TableTabViewModel : ObservableObject
         ApplySqlFilterCommand = new RelayCommand(ApplySqlFilter);
         FilterByValueCommand = new RelayCommand<object>(FilterByValue);
         FilterCustomCommand = new RelayCommand(() => FilterCustom(LastRightClickedCellInfo));
+        ChangeValueCommand = new RelayCommand(ChangeValue);
 
         SubscribeToDataTable();
         UpdateRecordCounts();
@@ -78,6 +79,7 @@ public sealed class TableTabViewModel : ObservableObject
     public ICommand ApplySqlFilterCommand { get; }
     public ICommand FilterByValueCommand { get; }
     public ICommand FilterCustomCommand { get; }
+    public ICommand ChangeValueCommand { get; }
 
     public DataView CurrentTableView => _document.DataTable.DefaultView;
 
@@ -354,6 +356,96 @@ public sealed class TableTabViewModel : ObservableObject
     private void ApplySqlFilter()
     {
         ApplyFilterExpression(SqlFilter);
+    }
+
+    private void ChangeValue()
+    {
+        if (LastRightClickedCellInfo == null) return;
+
+        var columnName = LastRightClickedCellInfo.ColumnName;
+        var column = _document.DataTable.Columns[columnName];
+        if (column == null) return;
+
+        var currentValue = LastRightClickedCellInfo.Value?.ToString() ?? string.Empty;
+
+        var newValue = InputDialog.Show(
+            $"Ingrese el nuevo valor para la columna [{columnName}]:",
+            "Cambiar Valor",
+            currentValue);
+
+        if (newValue == null) return;
+
+        // Determinar qué registros actualizar
+        var recordsToUpdate = new List<DataRowView>();
+        if (_selectedRecords.Count > 1)
+        {
+            recordsToUpdate.AddRange(_selectedRecords);
+        }
+        else if (SelectedRecord != null)
+        {
+            recordsToUpdate.Add(SelectedRecord);
+        }
+
+        if (recordsToUpdate.Count == 0) return;
+
+        // Pedir confirmación
+        var count = recordsToUpdate.Count;
+        var confirmMsg = count > 1 
+            ? $"¿Está seguro de que desea cambiar el valor de [{columnName}] a '{newValue}' en los {count} registros seleccionados?"
+            : $"¿Está seguro de que desea cambiar el valor de [{columnName}] a '{newValue}'?";
+
+        var result = System.Windows.MessageBox.Show(confirmMsg, "Confirmar Cambio", 
+            System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
+
+        if (result != System.Windows.MessageBoxResult.Yes) return;
+
+        try
+        {
+            var typedValue = ConvertValue(newValue, column.DataType);
+            
+            foreach (var rowView in recordsToUpdate)
+            {
+                rowView.Row[columnName] = typedValue ?? DBNull.Value;
+            }
+            
+            HasPendingChanges = true;
+            // Forzar refresco de la vista si es necesario (aunque el binding debería detectarlo)
+            NotifyCommands();
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show($"Error al cambiar valor: {ex.Message}", "Error de Edición", 
+                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+        }
+    }
+
+    private object? ConvertValue(string value, Type targetType)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            if (targetType == typeof(string)) return string.Empty;
+            return null;
+        }
+
+        if (targetType == typeof(bool))
+        {
+            var s = value.Trim().ToUpper();
+            return s is "T" or "Y" or "1" or "TRUE" or "S";
+        }
+
+        if (targetType == typeof(DateTime))
+        {
+            if (DateTime.TryParseExact(value, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+                return date;
+            return DateTime.Parse(value);
+        }
+
+        if (targetType == typeof(decimal) || targetType == typeof(double))
+        {
+            return Convert.ChangeType(value.Replace(',', '.'), targetType, CultureInfo.InvariantCulture);
+        }
+
+        return Convert.ChangeType(value, targetType);
     }
 
     private void ApplyFilterExpression(string expression)
