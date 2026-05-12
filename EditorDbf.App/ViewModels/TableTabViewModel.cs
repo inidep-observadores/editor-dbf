@@ -320,19 +320,13 @@ public sealed class TableTabViewModel : ObservableObject
 
     private void ApplyFilter()
     {
-        if (string.IsNullOrWhiteSpace(SelectedFilterColumn))
-        {
-            return;
-        }
+        if (string.IsNullOrWhiteSpace(SelectedFilterColumn)) return;
 
         var column = _document.DataTable.Columns[SelectedFilterColumn];
-        if (column is null)
-        {
-            return;
-        }
+        if (column is null) return;
 
         var expression = BuildFilterExpression(column, SelectedFilterOperator, FilterValue);
-        ApplyFilterExpression(expression);
+        CombineAndApplyFilter(expression);
     }
 
     private void ApplyFilter(FilterParams p)
@@ -341,7 +335,20 @@ public sealed class TableTabViewModel : ObservableObject
         if (column == null) return;
 
         var expression = BuildFilterExpression(column, p.Operator, p.Value?.ToString() ?? string.Empty);
-        ApplyFilterExpression(expression);
+        CombineAndApplyFilter(expression);
+    }
+
+    private void CombineAndApplyFilter(string newCondition)
+    {
+        var currentFilter = _document.DataTable.DefaultView.RowFilter;
+        if (string.IsNullOrWhiteSpace(currentFilter))
+        {
+            ApplyFilterExpression(newCondition);
+        }
+        else
+        {
+            ApplyFilterExpression($"({currentFilter}) AND ({newCondition})");
+        }
     }
 
     private void ApplySqlFilter()
