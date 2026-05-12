@@ -15,6 +15,7 @@
     <PackageReference Include="System.Text.Encoding.CodePages" Version="10.0.7" />
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="Assets\app_icon.ico" />
     <Resource Include="Assets\app_icon.png" />
   </ItemGroup>
 </Project>

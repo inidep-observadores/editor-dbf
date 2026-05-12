@@ -22,7 +22,14 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        _mutex = new Mutex(true, "EditorDbf_SingleInstanceMutex", out bool isNewInstance);
+        this.DispatcherUnhandledException += (s, args) =>
+        {
+            MessageBox.Show($"Error fatal no controlado:\n{args.Exception.Message}\n\nDetalles:\n{args.Exception.InnerException?.Message}", "Error Crítico", MessageBoxButton.OK, MessageBoxImage.Error);
+            args.Handled = true;
+            Shutdown();
+        };
+
+        _mutex = new Mutex(true, "EditorDbf_DebugInstanceMutex", out bool isNewInstance);
 
         if (!isNewInstance)
         {

@@ -224,6 +224,7 @@ public sealed class DbfTableService
     private void ExportToCsv(DataView view, string filePath)
     {
         var sb = new StringBuilder();
+        if (view.Table == null) return;
         var columns = view.Table.Columns;
 
         // Header
@@ -244,7 +245,7 @@ public sealed class DbfTableService
     {
         using var workbook = new ClosedXML.Excel.XLWorkbook();
         var worksheet = workbook.Worksheets.Add("Export");
-
+        if (view.Table == null) return;
         var columns = view.Table.Columns;
         for (var i = 0; i < columns.Count; i++)
         {
