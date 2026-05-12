@@ -61,7 +61,7 @@ Section "Uninstall"
     RMDir /r "$INSTDIR"
 SectionEnd
 
-OutFile "EditorDbf_Setup.exe"
+OutFile "InstalarEditorDbf.exe"
 Name "${APP_NAME}"
 InstallDir "$PROGRAMFILES64\${INSTALL_DIR}"
 ShowInstDetails show
