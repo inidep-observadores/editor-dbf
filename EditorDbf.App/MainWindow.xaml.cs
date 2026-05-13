@@ -17,6 +17,9 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        // Establecer el lenguaje para que las conversiones de WPF (fechas, números) respeten el formato dd/MM/yyyy
+        // Usamos es-AR como base para asegurar dd/MM/yyyy independientemente de la configuración regional del SO
+        this.Language = System.Windows.Markup.XmlLanguage.GetLanguage("es-AR");
         DataContextChanged += OnDataContextChanged;
     }
 
@@ -73,12 +76,16 @@ public partial class MainWindow : Window
         main.UpdateSelectedRows(table, selectedRows);
     }
 
-    private void TableDataGrid_OnAutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
+    private void OnAutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
     {
         if (e.PropertyType == typeof(DateTime) && e.Column is DataGridTextColumn textColumn)
         {
             if (textColumn.Binding is Binding binding)
+            {
                 binding.StringFormat = "dd/MM/yyyy";
+                // Asegurar que la edición use el formato dd/MM/yyyy para parsear la fecha ingresada
+                binding.ConverterCulture = System.Globalization.CultureInfo.GetCultureInfo("es-AR");
+            }
         }
     }
 
