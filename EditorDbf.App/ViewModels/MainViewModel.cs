@@ -409,19 +409,28 @@ public sealed class MainViewModel : ObservableObject
     private void SaveCurrentTable()
     {
         if (ActiveTableTab is null) return;
+        SaveTab(ActiveTableTab);
+    }
 
+    private bool SaveTab(TableTabViewModel tab)
+    {
         try
         {
-            _dbfTableService.SaveTable(ActiveTableTab.Document);
-            ActiveTableTab.MarkSaved();
-            OnPropertyChanged(nameof(DirtyStatus));
-            StatusMessage = "Cambios guardados en DBF.";
-            NotifyCommands();
+            _dbfTableService.SaveTable(tab.Document);
+            tab.MarkSaved();
+            if (ReferenceEquals(tab, ActiveTableTab))
+            {
+                OnPropertyChanged(nameof(DirtyStatus));
+                StatusMessage = "Cambios guardados en DBF.";
+                NotifyCommands();
+            }
+            return true;
         }
         catch (Exception exception)
         {
             StatusMessage = $"Error al guardar: {exception.Message}";
             MessageBox.Show(exception.Message, "Error al guardar", MessageBoxButton.OK, MessageBoxImage.Error);
+            return false;
         }
     }
 
@@ -543,7 +552,7 @@ public sealed class MainViewModel : ObservableObject
     {
         if (SelectedOpenTable is not null)
         {
-            CloseAnyTab(SelectedOpenTable);
+            TryCloseTab(SelectedOpenTable);
         }
     }
 
@@ -561,7 +570,48 @@ public sealed class MainViewModel : ObservableObject
         StatusMessage = "Consola SQL abierta.";
     }
 
-    private void CloseTab(TableTabViewModel tab) => CloseAnyTab(tab);
+    private void CloseTab(TableTabViewModel tab) => TryCloseTab(tab);
+
+    public bool RequestCloseAll()
+    {
+        var tabs = OpenTables.ToList();
+        foreach (var tab in tabs)
+        {
+            if (!TryCloseTab(tab))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private bool TryCloseTab(object tab)
+    {
+        if (tab is TableTabViewModel tableTab && tableTab.HasPendingChanges)
+        {
+            var result = MessageBox.Show(
+                $"La tabla '{tableTab.FileName}' tiene cambios pendientes. ¿Desea guardarlos antes de cerrar?",
+                "Cambios pendientes",
+                MessageBoxButton.YesNoCancel,
+                MessageBoxImage.Question);
+
+            if (result == MessageBoxResult.Cancel)
+            {
+                return false;
+            }
+
+            if (result == MessageBoxResult.Yes)
+            {
+                if (!SaveTab(tableTab))
+                {
+                    return false;
+                }
+            }
+        }
+
+        CloseAnyTab(tab);
+        return true;
+    }
 
     private void CloseAnyTab(object tab)
     {

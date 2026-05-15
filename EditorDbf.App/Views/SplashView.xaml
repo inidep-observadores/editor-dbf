@@ -1,0 +1,79 @@
+<Window x:Class="EditorDbf.App.Views.SplashView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="SplashView" Height="450" Width="600"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False">
+    
+    <Window.Resources>
+        <Style x:Key="TitleTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="32"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#1A202C"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
+        
+        <Style x:Key="SubtitleTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Foreground" Value="#718096"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,4,0,0"/>
+        </Style>
+
+        <Style x:Key="LoadingTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#A0AEC0"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,15,0,0"/>
+        </Style>
+    </Window.Resources>
+
+    <Border Background="White" 
+            CornerRadius="12" 
+            BorderBrush="#E2E8F0" 
+            BorderThickness="1">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="30" ShadowDepth="0" Opacity="0.15" Color="Black"/>
+        </Border.Effect>
+        
+        <Grid>
+            <!-- Línea azul superior como en la imagen -->
+            <Border Height="4" Background="#3182CE" VerticalAlignment="Top" CornerRadius="12,12,0,0"/>
+            
+            <StackPanel VerticalAlignment="Center" Margin="0,20,0,0">
+                <!-- Icono de la App -->
+                <Image Source="/Assets/app_icon.png" 
+                       Width="140" Height="140" 
+                       HorizontalAlignment="Center"
+                       RenderOptions.BitmapScalingMode="HighQuality">
+                    <Image.Effect>
+                        <DropShadowEffect BlurRadius="15" ShadowDepth="2" Opacity="0.1" Color="Black"/>
+                    </Image.Effect>
+                </Image>
+
+                <StackPanel Margin="0,30,0,0">
+                    <TextBlock Text="Editor DBF" Style="{StaticResource TitleTextStyle}"/>
+                    <TextBlock Text="INIDEP - Observadores a Bordo" Style="{StaticResource SubtitleTextStyle}"/>
+                </StackPanel>
+
+                <Grid Margin="60,60,60,0">
+                    <ProgressBar IsIndeterminate="True" 
+                                 Height="3" 
+                                 Background="#EDF2F7" 
+                                 Foreground="#B2C5FF"
+                                 BorderThickness="0"/>
+                </Grid>
+
+                <TextBlock Text="Iniciando aplicación..." Style="{StaticResource LoadingTextStyle}"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

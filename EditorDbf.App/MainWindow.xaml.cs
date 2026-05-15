@@ -23,6 +23,18 @@ public partial class MainWindow : Window
         DataContextChanged += OnDataContextChanged;
     }
 
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        if (DataContext is MainViewModel viewModel)
+        {
+            if (!viewModel.RequestCloseAll())
+            {
+                e.Cancel = true;
+            }
+        }
+        base.OnClosing(e);
+    }
+
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
         if (e.OldValue is MainViewModel oldVm)

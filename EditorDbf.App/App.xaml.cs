@@ -20,7 +20,7 @@ public partial class App : Application
 
     private const int SW_RESTORE = 9;
 
-    protected override void OnStartup(StartupEventArgs e)
+    protected override async void OnStartup(StartupEventArgs e)
     {
         this.DispatcherUnhandledException += (s, args) =>
         {
@@ -38,10 +38,18 @@ public partial class App : Application
             return;
         }
 
+        // Mostrar pantalla de carga
+        var splash = new EditorDbf.App.Views.SplashView();
+        splash.Show();
+
         // Habilitar soporte para codificaciones legacy (CP1252, CP850, etc.)
         System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 
         base.OnStartup(e);
+
+        // Simulamos un tiempo de carga para que se aprecie el diseño del splash y
+        // dar tiempo a que los recursos se inicialicen correctamente.
+        await System.Threading.Tasks.Task.Delay(3000);
 
         var connectionRepository = new ConnectionRepository();
         var dbfTableService = new DbfTableService();
@@ -53,6 +61,8 @@ public partial class App : Application
             DataContext = mainViewModel
         };
 
+        // Cerramos el splash solo cuando la ventana principal haya cargado
+        mainWindow.Loaded += (s, args) => splash.Close();
         mainWindow.Show();
     }
 
