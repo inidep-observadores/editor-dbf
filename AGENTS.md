@@ -11,7 +11,8 @@ This document provides instructions for agentic coding assistants working on the
 - **Publish**: `dotnet publish`
 
 ### Testing
-- **Automated Tests**: Currently, there is no automated test suite in this project. Verification should be done via manual execution and runtime debugging.
+- **Automated Tests**: Execute `dotnet test` from the root directory to run the xUnit test suite. Ensure all tests pass before submitting changes.
+- **Manual Verification**: Should still be done to verify UI behavior and theme consistency.
 
 ## 2. Code Style and Conventions
 

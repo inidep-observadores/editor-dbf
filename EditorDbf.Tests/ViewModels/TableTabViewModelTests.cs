@@ -8,6 +8,7 @@ using FluentAssertions;
 using NSubstitute;
 using Xunit;
 using DotNetDBF;
+using System.Globalization;
 
 namespace EditorDbf.Tests.ViewModels;
 
@@ -120,7 +121,7 @@ public class TableTabViewModelTests
     public void BuildFilterExpression_StringEqual_GeneratesCorrectSQL()
     {
         Setup();
-        var col = _document.DataTable.Columns["Name"];
+        var col = _document.DataTable.Columns["Name"]!;
         var expr = TableTabViewModel.BuildFilterExpression(col, "=", "John");
 
         expr.Should().Be("[Name] = 'John'");
@@ -130,7 +131,7 @@ public class TableTabViewModelTests
     public void BuildFilterExpression_StringContains_GeneratesLikeSyntax()
     {
         Setup();
-        var col = _document.DataTable.Columns["Name"];
+        var col = _document.DataTable.Columns["Name"]!;
         var expr = TableTabViewModel.BuildFilterExpression(col, "CONTIENE", "oh");
 
         expr.Should().Contain("LIKE");
@@ -138,32 +139,67 @@ public class TableTabViewModelTests
     }
 
     [Fact]
-    public void BuildFilterExpression_NumericComparison_GeneratesCorrectLiteral()
+    public void BuildFilterExpression_NumericWithComma_GeneratesCorrectDotLiteral()
     {
         Setup();
-        var col = _document.DataTable.Columns["Age"];
-        var expr = TableTabViewModel.BuildFilterExpression(col, ">", "25");
+        var col = _document.DataTable.Columns["Salary"]!;
+        // Simular entrada de usuario con coma
+        var expr = TableTabViewModel.BuildFilterExpression(col, "=", "50000,44");
 
-        expr.Should().Be("[Age] > 25");
+        expr.Should().Be("[Salary] = 50000.44");
     }
 
     [Fact]
-    public void BuildFilterExpression_BoolTrue_GeneratesBoolean()
+    public void BuildFilterExpression_NumericWithDecimalObject_GeneratesCorrectDotLiteral()
     {
         Setup();
-        var col = _document.DataTable.Columns["Name"];
-        var boolCol = _document.DataTable.Columns.Add("Active", typeof(bool));
+        var col = _document.DataTable.Columns["Salary"]!;
+        // Simular valor capturado directamente de la grilla (decimal)
+        var expr = TableTabViewModel.BuildFilterExpression(col, "=", 50000.44m);
 
-        var expr = TableTabViewModel.BuildFilterExpression(boolCol, "=", "T");
+        expr.Should().Be("[Salary] = 50000.44");
+    }
 
-        expr.Should().Contain("TRUE");
+    [Fact]
+    public void BuildFilterExpression_BoolVariations_GeneratesTrue()
+    {
+        Setup();
+        var boolCol = _document.DataTable.Columns.Add("TestBool", typeof(bool));
+
+        TableTabViewModel.BuildFilterExpression(boolCol, "=", "T").Should().Contain("TRUE");
+        TableTabViewModel.BuildFilterExpression(boolCol, "=", "S").Should().Contain("TRUE");
+        TableTabViewModel.BuildFilterExpression(boolCol, "=", "1").Should().Contain("TRUE");
+        TableTabViewModel.BuildFilterExpression(boolCol, "=", "True").Should().Contain("TRUE");
+    }
+
+    [Fact]
+    public void BuildFilterExpression_DateObject_GeneratesCorrectLiteral()
+    {
+        Setup();
+        var col = _document.DataTable.Columns["HireDate"]!;
+        var date = new DateTime(2024, 5, 16);
+        var expr = TableTabViewModel.BuildFilterExpression(col, "=", date);
+
+        // La lógica de fechas para "=" genera un rango >= y <
+        expr.Should().Contain(">= #05/16/2024#");
+        expr.Should().Contain("< #05/17/2024#");
+    }
+
+    [Fact]
+    public void BuildFilterExpression_NullValue_GeneratesNull()
+    {
+        Setup();
+        var col = _document.DataTable.Columns["Salary"]!;
+        var expr = TableTabViewModel.BuildFilterExpression(col, "=", null);
+
+        expr.Should().Contain("NULL");
     }
 
     [Fact]
     public void BuildFilterExpression_StringEmpty_GeneratesISNULL()
     {
         Setup();
-        var col = _document.DataTable.Columns["Name"];
+        var col = _document.DataTable.Columns["Name"]!;
         var expr = TableTabViewModel.BuildFilterExpression(col, "VACIO", "");
 
         expr.Should().Contain("IS NULL");
@@ -173,7 +209,7 @@ public class TableTabViewModelTests
     public void BuildFilterExpression_StringNotEmpty_GeneratesISNOTNULL()
     {
         Setup();
-        var col = _document.DataTable.Columns["Name"];
+        var col = _document.DataTable.Columns["Name"]!;
         var expr = TableTabViewModel.BuildFilterExpression(col, "NO VACIO", "");
 
         expr.Should().Contain("IS NOT NULL");
