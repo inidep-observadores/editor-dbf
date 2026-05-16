@@ -355,23 +355,29 @@
                                     <ListBox.InputBindings>
                                         <KeyBinding Key="Delete" Command="{Binding DataContext.DeleteFileCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
                                     </ListBox.InputBindings>
-                                    <ListBox.ContextMenu>
-                                        <ContextMenu>
-                                            <MenuItem Header="Refrescar" 
-                                                      Command="{Binding Data.RefreshFilesCommand, Source={StaticResource MainViewModelProxy}}"
-                                                      Icon="{infra:Icon Text=&#xE72C;}"/>
-                                            <Separator/>
-                                            <MenuItem Header="Eliminar archivo" 
-                                                      Command="{Binding Data.DeleteFileCommand, Source={StaticResource MainViewModelProxy}}"
-                                                      CommandParameter="{Binding}"
-                                                      Icon="{infra:Icon Text=&#xE74D;}"/>
-                                            <Separator/>
-                                            <MenuItem Header="Abrir en el explorador" 
-                                                      Command="{Binding Data.ShowInExplorerCommand, Source={StaticResource MainViewModelProxy}}"
-                                                      CommandParameter="{Binding}"
-                                                      Icon="{infra:Icon Text=&#xED25;}"/>
-                                        </ContextMenu>
-                                    </ListBox.ContextMenu>
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                                            <Setter Property="ContextMenu">
+                                                <Setter.Value>
+                                                    <ContextMenu>
+                                                        <MenuItem Header="Refrescar" 
+                                                                  Command="{Binding Data.RefreshFilesCommand, Source={StaticResource MainViewModelProxy}}"
+                                                                  Icon="{infra:Icon Text=&#xE72C;}"/>
+                                                        <Separator/>
+                                                        <MenuItem Header="Eliminar archivo" 
+                                                                  Command="{Binding Data.DeleteFileCommand, Source={StaticResource MainViewModelProxy}}"
+                                                                  CommandParameter="{Binding}"
+                                                                  Icon="{infra:Icon Text=&#xE74D;}"/>
+                                                        <Separator/>
+                                                        <MenuItem Header="Abrir en el explorador" 
+                                                                  Command="{Binding Data.ShowInExplorerCommand, Source={StaticResource MainViewModelProxy}}"
+                                                                  CommandParameter="{Binding}"
+                                                                  Icon="{infra:Icon Text=&#xED25;}"/>
+                                                    </ContextMenu>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
                                 </ListBox>
 
                                 <GridSplitter Grid.Row="2" Height="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Cursor="SizeNS" ResizeBehavior="PreviousAndNext">
