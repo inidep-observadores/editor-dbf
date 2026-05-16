@@ -26,6 +26,8 @@ public sealed class FilterDisplayConverter : IValueConverter
             "<=" => "es menor o igual que",
             "CONTIENE" => "contiene",
             "ENTRE" => "está entre",
+            "VACIO" => "está vacío",
+            "NO VACIO" => "no está vacío",
             _ => op
         };
 
@@ -50,6 +52,11 @@ public sealed class FilterDisplayConverter : IValueConverter
         {
             // Para el texto del menú, no mostramos los % para que sea más natural
             valDisplay = $"'{Truncate(p.Value?.ToString())}'";
+        }
+
+        if (op is "VACIO" or "NO VACIO")
+        {
+            return $"{p.ColumnName} {opDisplay}";
         }
 
         return $"{p.ColumnName} {opDisplay} {valDisplay}";

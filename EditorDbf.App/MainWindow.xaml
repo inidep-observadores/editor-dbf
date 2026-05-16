@@ -641,6 +641,11 @@
                                                     <MenuItem Header="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterDisplayConverter}, ConverterParameter='&lt;'}"
                                                               Command="{Binding FilterByValueCommand}" CommandParameter="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterParamOperatorConverter}, ConverterParameter='&lt;'}"/>
                                                     <Separator/>
+                                                    <MenuItem Header="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterDisplayConverter}, ConverterParameter='VACIO'}"
+                                                              Command="{Binding FilterByValueCommand}" CommandParameter="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterParamOperatorConverter}, ConverterParameter='VACIO'}"/>
+                                                    <MenuItem Header="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterDisplayConverter}, ConverterParameter='NO VACIO'}"
+                                                              Command="{Binding FilterByValueCommand}" CommandParameter="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterParamOperatorConverter}, ConverterParameter='NO VACIO'}"/>
+                                                    <Separator/>
                                                     <MenuItem Header="Personalizado..." Icon="{infra:Icon Text=&#xE70F;}">
                                                         <MenuItem Header="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterDisplayConverter}, ConverterParameter='=:CUSTOM'}"
                                                                   Command="{Binding FilterCustomCommand}" CommandParameter="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterParamOperatorConverter}, ConverterParameter='='}"/>
