@@ -62,6 +62,7 @@ public sealed class MainViewModel : ObservableObject
         OpenSqlConsoleCommand = new RelayCommand(OpenSqlConsole, () => SelectedConnection?.Exists == true);
         DeleteFileCommand = new RelayCommand<string>(p => DeleteFile(p), (p) => SelectedConnection is not null && (!string.IsNullOrWhiteSpace(p) || !string.IsNullOrWhiteSpace(SelectedDbfFile)));
         ShowInExplorerCommand = new RelayCommand<string>(p => ShowInExplorer(p), (p) => SelectedConnection is not null && (!string.IsNullOrWhiteSpace(p) || !string.IsNullOrWhiteSpace(SelectedDbfFile)));
+        RenameFileCommand = new RelayCommand<string>(p => RenameFile(p), (p) => SelectedConnection is not null && (!string.IsNullOrWhiteSpace(p) || !string.IsNullOrWhiteSpace(SelectedDbfFile)));
 
         TryRestoreLastConnection();
         IsDarkTheme = _state.IsDarkTheme;
@@ -113,6 +114,7 @@ public sealed class MainViewModel : ObservableObject
     public ICommand OpenSqlConsoleCommand { get; }
     public ICommand DeleteFileCommand { get; }
     public ICommand ShowInExplorerCommand { get; }
+    public ICommand RenameFileCommand { get; }
 
     public ConnectionProfile? SelectedConnection
     {
@@ -399,6 +401,7 @@ public sealed class MainViewModel : ObservableObject
             var document = _dbfTableService.LoadTable(filePath, forcedCodePage);
             var structure = _dbfTableService.DescribeFields(document.Fields);
             var tab = new TableTabViewModel(document, structure, CloseTab);
+            tab.RequestRefreshFiles = RefreshFiles;
 
             OpenTables.Add(tab);
             SelectedOpenTable = tab;
@@ -588,6 +591,78 @@ public sealed class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             MessageBox.Show($"Error al eliminar archivo: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void RenameFile(string? fileName = null)
+    {
+        var oldFileName = fileName ?? SelectedDbfFile;
+        if (SelectedConnection is null || string.IsNullOrWhiteSpace(oldFileName)) return;
+
+        var directory = SelectedConnection.FolderPath;
+        var oldPath = Path.Combine(directory, oldFileName);
+        if (!File.Exists(oldPath)) return;
+
+        var newFileName = Views.InputDialog.Show(
+            $"Ingrese el nuevo nombre para el archivo '{oldFileName}':",
+            "Renombrar archivo",
+            oldFileName);
+
+        if (string.IsNullOrWhiteSpace(newFileName) || string.Equals(oldFileName, newFileName, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        // Asegurar extensión .dbf
+        if (!newFileName.EndsWith(".dbf", StringComparison.OrdinalIgnoreCase))
+        {
+            newFileName += ".dbf";
+        }
+
+        var newPath = Path.Combine(directory, newFileName);
+
+        if (File.Exists(newPath))
+        {
+            MessageBox.Show($"El archivo '{newFileName}' ya existe.", "Error al renombrar", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        try
+        {
+            // Cerrar pestaña si está abierta (o preguntar para guardar cambios)
+            var tab = OpenTables.OfType<TableTabViewModel>().FirstOrDefault(t => 
+                string.Equals(t.FilePath, oldPath, StringComparison.OrdinalIgnoreCase));
+            
+            if (tab != null)
+            {
+                if (!TryCloseTab(tab)) return;
+            }
+
+            // Renombrar archivo principal
+            File.Move(oldPath, newPath);
+
+            // Renombrar archivos de memo si existen
+            var memoExtensions = new[] { ".fpt", ".dbt", ".FPT", ".DBT" };
+            foreach (var ext in memoExtensions)
+            {
+                var oldMemoPath = Path.ChangeExtension(oldPath, ext);
+                if (File.Exists(oldMemoPath))
+                {
+                    var newMemoPath = Path.ChangeExtension(newPath, ext);
+                    if (File.Exists(newMemoPath)) File.Delete(newMemoPath); // Seguridad
+                    File.Move(oldMemoPath, newMemoPath);
+                }
+            }
+
+            StatusMessage = $"Archivo renombrado: {oldFileName} -> {newFileName}";
+            RefreshFiles();
+            
+            // Intentar seleccionar el nuevo archivo en la lista
+            SelectedDbfFile = newFileName;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error al renombrar archivo: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -878,6 +953,7 @@ public sealed class MainViewModel : ObservableObject
         (OpenSqlConsoleCommand as IRelayCommand)?.RaiseCanExecuteChanged();
         (DeleteFileCommand as IRelayCommand)?.RaiseCanExecuteChanged();
         (ShowInExplorerCommand as IRelayCommand)?.RaiseCanExecuteChanged();
+        (RenameFileCommand as IRelayCommand)?.RaiseCanExecuteChanged();
     }
 
     private int? ResolvePreferredCodePage(string filePath)

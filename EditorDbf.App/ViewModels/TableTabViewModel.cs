@@ -26,6 +26,7 @@ public sealed class TableTabViewModel : ObservableObject
     private string _currentFilterText = string.Empty;
     private string _sqlFilter = string.Empty;
     private readonly List<DataRowView> _selectedRecords = [];
+    public Action? RequestRefreshFiles { get; set; }
 
     public TableTabViewModel(
         DbfTableDocument document,
@@ -284,20 +285,51 @@ public sealed class TableTabViewModel : ObservableObject
 
     public void ExportTable()
     {
-        var fileNameWithoutExt = Path.GetFileNameWithoutExtension(FileName);
-        var dialog = new Microsoft.Win32.SaveFileDialog
+        var hasSelection = _selectedRecords.Count > 0;
+        var viewModel = new ExportViewModel(FilePath, hasSelection);
+        var dialog = new ExportView(viewModel)
         {
-            Filter = "CSV file (*.csv)|*.csv|Excel file (*.xlsx)|*.xlsx|DBF file (*.dbf)|*.dbf",
-            FileName = $"{fileNameWithoutExt}.csv"
+            Owner = System.Windows.Application.Current.MainWindow
         };
 
         if (dialog.ShowDialog() == true)
         {
-            var path = dialog.FileName;
+            var path = viewModel.DestinationPath;
             var ext = Path.GetExtension(path).ToLower();
             
             var service = new EditorDbf.App.Services.DbfTableService();
-            service.ExportTable(_document, CurrentTableView, path, ext);
+
+            try
+            {
+                if (viewModel.Scope == ExportScope.Selected)
+                {
+                    // Exportar solo filas seleccionadas
+                    var tempTable = _document.DataTable.Clone();
+                    foreach (var rowView in _selectedRecords)
+                    {
+                        if (rowView.Row.RowState != DataRowState.Deleted)
+                        {
+                            tempTable.ImportRow(rowView.Row);
+                        }
+                    }
+                    service.ExportTable(_document, tempTable.DefaultView, path, ext);
+                }
+                else
+                {
+                    // Exportar vista filtrada (CurrentTableView)
+                    service.ExportTable(_document, CurrentTableView, path, ext);
+                }
+
+                System.Windows.MessageBox.Show($"Exportación completada con éxito en:\n{path}",
+                    "Exportar", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                
+                RequestRefreshFiles?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"Error al exportar: {ex.Message}", "Error de Exportación",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
         }
     }
 

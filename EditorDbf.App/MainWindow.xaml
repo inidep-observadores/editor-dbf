@@ -273,6 +273,7 @@
                                                       Icon="{infra:Icon Text=&#xED25;}"/>
                                             <Separator/>
                                             <MenuItem Header="Cambiar nombre..." 
+                                                      InputGestureText="F2"
                                                       Command="{Binding Data.RenameConnectionCommand, Source={StaticResource MainViewModelProxy}}"
                                                       CommandParameter="{Binding}"
                                                       Icon="{infra:Icon Text=&#xE70F;}"/>
@@ -353,23 +354,30 @@
                                          BorderThickness="0"
                                          Margin="4,4,4,0">
                                     <ListBox.InputBindings>
+                                        <KeyBinding Key="Enter" Command="{Binding DataContext.OpenSelectedTableCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
                                         <KeyBinding Key="Delete" Command="{Binding DataContext.DeleteFileCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                        <KeyBinding Key="F2" Command="{Binding DataContext.RenameFileCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
                                     </ListBox.InputBindings>
                                     <ListBox.ItemContainerStyle>
                                         <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
                                             <Setter Property="ContextMenu">
                                                 <Setter.Value>
                                                     <ContextMenu>
-                                                        <MenuItem Header="Refrescar" 
-                                                                  Command="{Binding Data.RefreshFilesCommand, Source={StaticResource MainViewModelProxy}}"
-                                                                  Icon="{infra:Icon Text=&#xE72C;}"/>
+                                                        <MenuItem Header="Abrir" FontWeight="Bold"
+                                                                  Command="{Binding Data.OpenSelectedTableCommand, Source={StaticResource MainViewModelProxy}}"
+                                                                  Icon="{infra:Icon Text=&#xE8A7;}"/>
                                                         <Separator/>
+                                                        <MenuItem Header="Cambiar nombre..." 
+                                                                  InputGestureText="F2"
+                                                                  Command="{Binding Data.RenameFileCommand, Source={StaticResource MainViewModelProxy}}"
+                                                                  CommandParameter="{Binding}"
+                                                                  Icon="{infra:Icon Text=&#xE70F;}"/>
                                                         <MenuItem Header="Eliminar archivo" 
                                                                   Command="{Binding Data.DeleteFileCommand, Source={StaticResource MainViewModelProxy}}"
                                                                   CommandParameter="{Binding}"
                                                                   Icon="{infra:Icon Text=&#xE74D;}"/>
                                                         <Separator/>
-                                                        <MenuItem Header="Abrir en el explorador" 
+                                                        <MenuItem Header="Mostrar en explorador" 
                                                                   Command="{Binding Data.ShowInExplorerCommand, Source={StaticResource MainViewModelProxy}}"
                                                                   CommandParameter="{Binding}"
                                                                   Icon="{infra:Icon Text=&#xED25;}"/>
