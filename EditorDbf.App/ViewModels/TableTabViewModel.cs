@@ -51,6 +51,7 @@ public sealed class TableTabViewModel : ObservableObject
         FilterCustomCommand = new RelayCommand<object>(p => FilterCustom(p as FilterParams ?? LastRightClickedCellInfo));
         FilterBetweenCommand = new RelayCommand<object>(p => FilterBetween(p as FilterParams ?? LastRightClickedCellInfo));
         ChangeValueCommand = new RelayCommand(ChangeValue);
+        ChangeDatePartCommand = new RelayCommand<string>(ChangeDatePart);
         InvertSelectionCommand = new RelayCommand<object>(InvertSelection);
 
         SubscribeToDataTable();
@@ -84,6 +85,7 @@ public sealed class TableTabViewModel : ObservableObject
     public ICommand FilterCustomCommand { get; }
     public ICommand FilterBetweenCommand { get; }
     public ICommand ChangeValueCommand { get; }
+    public ICommand ChangeDatePartCommand { get; }
     public ICommand InvertSelectionCommand { get; }
 
     public DataView CurrentTableView => _document.DataTable.DefaultView;
@@ -161,9 +163,25 @@ public sealed class TableTabViewModel : ObservableObject
     public FilterParams? LastRightClickedCellInfo
     {
         get => _lastRightClickedCellInfo;
-        set => SetProperty(ref _lastRightClickedCellInfo, value);
+        set
+        {
+            if (SetProperty(ref _lastRightClickedCellInfo, value))
+            {
+                OnPropertyChanged(nameof(IsDateColumn));
+            }
+        }
     }
     private FilterParams? _lastRightClickedCellInfo;
+
+    public bool IsDateColumn
+    {
+        get
+        {
+            if (LastRightClickedCellInfo == null) return false;
+            var column = _document.DataTable.Columns[LastRightClickedCellInfo.ColumnName];
+            return column?.DataType == typeof(DateTime);
+        }
+    }
 
     public int TotalRecords => _document.DataTable.Rows.Count;
     
@@ -451,6 +469,119 @@ public sealed class TableTabViewModel : ObservableObject
         catch (Exception ex)
         {
             System.Windows.MessageBox.Show($"Error al cambiar valor: {ex.Message}", "Error de Edición", 
+                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+        }
+    }
+
+    private void ChangeDatePart(string? part)
+    {
+        if (string.IsNullOrEmpty(part) || LastRightClickedCellInfo == null) return;
+
+        var columnName = LastRightClickedCellInfo.ColumnName;
+        var column = _document.DataTable.Columns[columnName];
+        if (column == null || column.DataType != typeof(DateTime)) return;
+
+        var partName = part.ToLower() switch
+        {
+            "day" => "día",
+            "month" => "mes",
+            "year" => "año",
+            _ => part
+        };
+
+        var newValueStr = InputDialog.Show(
+            $"Ingrese el nuevo valor para el {partName} de la columna [{columnName}]:",
+            $"Cambiar {partName}",
+            string.Empty);
+
+        if (string.IsNullOrWhiteSpace(newValueStr) || !int.TryParse(newValueStr, out var newValue)) return;
+
+        // Validar rangos básicos
+        if (part.Equals("Day", StringComparison.OrdinalIgnoreCase) && (newValue < 1 || newValue > 31))
+        {
+            System.Windows.MessageBox.Show("El día debe estar entre 1 y 31.", "Valor Inválido", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
+        }
+        if (part.Equals("Month", StringComparison.OrdinalIgnoreCase) && (newValue < 1 || newValue > 12))
+        {
+            System.Windows.MessageBox.Show("El mes debe estar entre 1 y 12.", "Valor Inválido", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
+        }
+        if (part.Equals("Year", StringComparison.OrdinalIgnoreCase) && (newValue < 1000 || newValue > 9999))
+        {
+            System.Windows.MessageBox.Show("El año debe ser un valor de 4 dígitos (1000-9999).", "Valor Inválido", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
+        }
+
+        // Determinar qué registros actualizar
+        var recordsToUpdate = new List<DataRowView>();
+        if (_selectedRecords.Count > 1)
+        {
+            recordsToUpdate.AddRange(_selectedRecords);
+        }
+        else if (SelectedRecord != null)
+        {
+            recordsToUpdate.Add(SelectedRecord);
+        }
+
+        if (recordsToUpdate.Count == 0) return;
+
+        // Pedir confirmación
+        var count = recordsToUpdate.Count;
+        var confirmMsg = count > 1
+            ? $"¿Está seguro de que desea cambiar el {partName} a '{newValue}' en los {count} registros seleccionados?"
+            : $"¿Está seguro de que desea cambiar el {partName} a '{newValue}'?";
+
+        var result = System.Windows.MessageBox.Show(confirmMsg, "Confirmar Cambio",
+            System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
+
+        if (result != System.Windows.MessageBoxResult.Yes) return;
+
+        var errors = 0;
+        try
+        {
+            foreach (var rowView in recordsToUpdate)
+            {
+                var currentVal = rowView.Row[columnName];
+                if (currentVal == DBNull.Value || currentVal is not DateTime current) continue;
+
+                try
+                {
+                    DateTime updated;
+                    if (part.Equals("Day", StringComparison.OrdinalIgnoreCase))
+                    {
+                        updated = new DateTime(current.Year, current.Month, newValue, current.Hour, current.Minute, current.Second);
+                    }
+                    else if (part.Equals("Month", StringComparison.OrdinalIgnoreCase))
+                    {
+                        updated = new DateTime(current.Year, newValue, current.Day, current.Hour, current.Minute, current.Second);
+                    }
+                    else if (part.Equals("Year", StringComparison.OrdinalIgnoreCase))
+                    {
+                        updated = new DateTime(newValue, current.Month, current.Day, current.Hour, current.Minute, current.Second);
+                    }
+                    else continue;
+
+                    rowView.Row[columnName] = updated;
+                }
+                catch
+                {
+                    errors++;
+                }
+            }
+
+            HasPendingChanges = true;
+            NotifyCommands();
+
+            if (errors > 0)
+            {
+                System.Windows.MessageBox.Show($"Se completó la operación, pero {errors} registros no pudieron ser actualizados debido a que la fecha resultante sería inválida (ej. 31 de febrero).",
+                    "Aviso", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show($"Error al cambiar parte de la fecha: {ex.Message}", "Error de Edición",
                 System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
         }
     }

@@ -752,9 +752,22 @@
                                                           CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget}"
                                                           Icon="{infra:Icon Text=&#xE8B1;}"/>
                                                 <Separator/>
-                                                <MenuItem Header="Cambiar valor..." 
-                                                          Icon="{infra:Icon Text=&#xE70F;}"
-                                                          Command="{Binding ChangeValueCommand}"/>
+                                                <MenuItem Header="Cambiar parte de la fecha" 
+                                                          Visibility="{Binding IsDateColumn, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                          Icon="{infra:Icon Text=&#xE787;}">
+                                                     <MenuItem Header="Cambiar día..." 
+                                                               Command="{Binding ChangeDatePartCommand}" 
+                                                               CommandParameter="Day"/>
+                                                     <MenuItem Header="Cambiar mes..." 
+                                                               Command="{Binding ChangeDatePartCommand}" 
+                                                               CommandParameter="Month"/>
+                                                     <MenuItem Header="Cambiar año..." 
+                                                               Command="{Binding ChangeDatePartCommand}" 
+                                                               CommandParameter="Year"/>
+                                                 </MenuItem>
+                                                 <MenuItem Header="Cambiar valor..." 
+                                                           Icon="{infra:Icon Text=&#xE70F;}"
+                                                           Command="{Binding ChangeValueCommand}"/>
                                                 <Separator/>
                                                 <MenuItem Header="Copiar" Command="Copy" Icon="{infra:Icon Text=&#xE8C8;}"/>
                                                 <MenuItem Header="Exportar..." Command="{Binding ExportCommand}" Icon="{infra:Icon Text=&#xE78C;}"/>
