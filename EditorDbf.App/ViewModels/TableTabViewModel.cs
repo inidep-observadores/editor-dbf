@@ -390,7 +390,7 @@ public sealed class TableTabViewModel : ObservableObject
         var column = _document.DataTable.Columns[p.ColumnName];
         if (column == null) return;
 
-        var expression = BuildFilterExpression(column, p.Operator, p.Value?.ToString() ?? string.Empty);
+        var expression = BuildFilterExpression(column, p.Operator, p.Value);
         CombineAndApplyFilter(expression);
     }
 
@@ -770,15 +770,17 @@ public sealed class TableTabViewModel : ObservableObject
         return filterOperator is "=" or "<>" or ">" or ">=" or "<" or "<=" or "CONTIENE";
     }
 
-    private static string BuildFilterExpression(DataColumn column, string filterOperator, string rawValue)
+    private static string BuildFilterExpression(DataColumn column, string filterOperator, object? rawValue)
     {
         var safeColumn = $"[{EscapeColumnName(column.ColumnName)}]";
-        var value = rawValue ?? string.Empty;
+        var value = rawValue;
 
         // Manejo especial para fechas para ignorar la parte de la hora en comparaciones comunes
         if (column.DataType == typeof(DateTime) && filterOperator is "=" or "<>" or ">" or ">=" or "<" or "<=")
         {
-            if (!DateTime.TryParse(value, out var dateValue))
+            DateTime dateValue;
+            if (value is DateTime dt) dateValue = dt;
+            else if (!DateTime.TryParse(value?.ToString(), out dateValue))
                 throw new InvalidOperationException("Las fechas deben ser válidas (ejemplo: 2026-05-08).");
             
             var dateOnly = dateValue.Date;
@@ -805,59 +807,72 @@ public sealed class TableTabViewModel : ObservableObject
                 ? $"{safeColumn} IS NOT NULL AND {safeColumn} <> ''"
                 : $"{safeColumn} IS NOT NULL",
             "CONTIENE" => column.DataType == typeof(string)
-                ? $"{safeColumn} LIKE '%{EscapeStringLiteral(value)}%'"
-                : $"Convert({safeColumn}, 'System.String') LIKE '%{EscapeStringLiteral(value)}%'",
+                ? $"{safeColumn} LIKE '%{EscapeStringLiteral(value?.ToString() ?? string.Empty)}%'"
+                : $"Convert({safeColumn}, 'System.String') LIKE '%{EscapeStringLiteral(value?.ToString() ?? string.Empty)}%'",
             "=" or "<>" or ">" or ">=" or "<" or "<=" => $"{safeColumn} {filterOperator} {BuildLiteral(column.DataType, value)}",
             _ => string.Empty
         };
     }
 
-    private static string BuildLiteral(Type dataType, string value)
+    private static string BuildLiteral(Type dataType, object? value)
     {
+        if (value == null || value == DBNull.Value) return "NULL";
+
         if (dataType == typeof(string))
         {
-            return $"'{EscapeStringLiteral(value)}'";
+            return $"'{EscapeStringLiteral(value.ToString() ?? string.Empty)}'";
         }
 
         if (dataType == typeof(bool))
         {
-            return bool.TryParse(value, out var boolValue)
-                ? (boolValue ? "TRUE" : "FALSE")
-                : throw new InvalidOperationException("Los valores booleanos deben ser true o false.");
+            if (value is bool b) return b ? "TRUE" : "FALSE";
+            var s = value.ToString()?.Trim().ToUpper();
+            return s is "T" or "Y" or "1" or "TRUE" or "S" ? "TRUE" : "FALSE";
         }
 
         if (dataType == typeof(DateTime))
         {
-            if (!DateTime.TryParse(value, out var dateValue))
+            if (value is DateTime dt) return $"#{dt:MM/dd/yyyy HH:mm:ss}#";
+            if (!DateTime.TryParse(value.ToString(), out var dateValue))
             {
                 throw new InvalidOperationException("Las fechas deben ser validas (ejemplo: 2026-05-08).");
             }
-
             return $"#{dateValue:MM/dd/yyyy HH:mm:ss}#";
         }
 
+        string stringValue = value.ToString() ?? string.Empty;
+
         if (dataType == typeof(int))
         {
-            return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var intValue)
+            if (value is int i) return i.ToString(CultureInfo.InvariantCulture);
+            return int.TryParse(stringValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var intValue)
                 ? intValue.ToString(CultureInfo.InvariantCulture)
                 : throw new InvalidOperationException("Se esperaba un numero entero.");
         }
 
         if (dataType == typeof(decimal))
         {
-            return decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var decimalValue)
+            if (value is decimal d) return d.ToString(CultureInfo.InvariantCulture);
+            if (value is double db) return ((decimal)db).ToString(CultureInfo.InvariantCulture);
+
+            var cleanValue = stringValue.Replace(',', '.');
+            return decimal.TryParse(cleanValue, NumberStyles.Number, CultureInfo.InvariantCulture, out var decimalValue)
                 ? decimalValue.ToString(CultureInfo.InvariantCulture)
-                : throw new InvalidOperationException("Se esperaba un valor decimal. Usa punto como separador.");
+                : throw new InvalidOperationException("Se esperaba un valor decimal.");
         }
 
         if (dataType == typeof(double))
         {
-            return double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var doubleValue)
+            if (value is double db) return db.ToString(CultureInfo.InvariantCulture);
+            if (value is decimal d) return ((double)d).ToString(CultureInfo.InvariantCulture);
+
+            var cleanValue = stringValue.Replace(',', '.');
+            return double.TryParse(cleanValue, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var doubleValue)
                 ? doubleValue.ToString(CultureInfo.InvariantCulture)
-                : throw new InvalidOperationException("Se esperaba un valor numerico. Usa punto como separador.");
+                : throw new InvalidOperationException("Se esperaba un valor numerico.");
         }
 
-        return $"'{EscapeStringLiteral(value)}'";
+        return $"'{EscapeStringLiteral(stringValue)}'";
     }
 
     private static string EscapeColumnName(string input)

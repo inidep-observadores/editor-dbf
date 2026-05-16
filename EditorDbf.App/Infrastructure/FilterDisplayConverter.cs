@@ -41,9 +41,9 @@ public sealed class FilterDisplayConverter : IValueConverter
             null or DBNull => "NULL",
             string s => $"'{Truncate(s)}'",
             DateTime dt => $"'{dt:dd/MM/yyyy}'",
-            decimal d => d.ToString(CultureInfo.InvariantCulture),
-            double db => db.ToString(CultureInfo.InvariantCulture),
-            int i => i.ToString(),
+            decimal d => d.ToString(culture),
+            double db => db.ToString(culture),
+            int i => i.ToString(culture),
             bool b => b ? ".T." : ".F.",
             _ => p.Value.ToString() ?? "NULL"
         };
