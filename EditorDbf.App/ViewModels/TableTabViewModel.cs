@@ -612,6 +612,27 @@ public sealed class TableTabViewModel : ObservableObject
         var safeColumn = $"[{EscapeColumnName(column.ColumnName)}]";
         var value = rawValue ?? string.Empty;
 
+        // Manejo especial para fechas para ignorar la parte de la hora en comparaciones comunes
+        if (column.DataType == typeof(DateTime) && filterOperator is "=" or "<>" or ">" or ">=" or "<" or "<=")
+        {
+            if (!DateTime.TryParse(value, out var dateValue))
+                throw new InvalidOperationException("Las fechas deben ser válidas (ejemplo: 2026-05-08).");
+            
+            var dateOnly = dateValue.Date;
+            var nextDay = dateOnly.AddDays(1);
+
+            return filterOperator switch
+            {
+                "=" => $"({safeColumn} >= #{dateOnly:MM/dd/yyyy}# AND {safeColumn} < #{nextDay:MM/dd/yyyy}#)",
+                "<>" => $"({safeColumn} < #{dateOnly:MM/dd/yyyy}# OR {safeColumn} >= #{nextDay:MM/dd/yyyy}#)",
+                ">" => $"{safeColumn} >= #{nextDay:MM/dd/yyyy}#",
+                ">=" => $"{safeColumn} >= #{dateOnly:MM/dd/yyyy}#",
+                "<" => $"{safeColumn} < #{dateOnly:MM/dd/yyyy}#",
+                "<=" => $"{safeColumn} < #{nextDay:MM/dd/yyyy}#",
+                _ => string.Empty
+            };
+        }
+
         return filterOperator switch
         {
             "VACIO" => column.DataType == typeof(string)
