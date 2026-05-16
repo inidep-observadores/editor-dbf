@@ -30,6 +30,16 @@ public static class EventBindingHelper
     public static object GetMouseDoubleClickCommandParameter(DependencyObject obj) => obj.GetValue(MouseDoubleClickCommandParameterProperty);
     public static void SetMouseDoubleClickCommandParameter(DependencyObject obj, object value) => obj.SetValue(MouseDoubleClickCommandParameterProperty, value);
 
+    public static readonly DependencyProperty IsNumericProperty =
+        DependencyProperty.RegisterAttached(
+            "IsNumeric",
+            typeof(bool),
+            typeof(EventBindingHelper),
+            new PropertyMetadata(false));
+
+    public static bool GetIsNumeric(DependencyObject obj) => (bool)obj.GetValue(IsNumericProperty);
+    public static void SetIsNumeric(DependencyObject obj, bool value) => obj.SetValue(IsNumericProperty, value);
+
     private static void OnMouseDoubleClickCommandChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is UIElement element)

@@ -687,6 +687,7 @@
                                               SelectionChanged="TableDataGrid_OnSelectionChanged"
                                               AutoGeneratingColumn="OnAutoGeneratingColumn"
                                               PreviewMouseRightButtonDown="TableDataGrid_OnPreviewMouseRightButtonDown"
+                                              PreviewKeyDown="TableDataGrid_OnPreviewKeyDown"
                                               AutoGenerateColumns="True"
                                               CanUserAddRows="False"
                                               CanUserDeleteRows="False"

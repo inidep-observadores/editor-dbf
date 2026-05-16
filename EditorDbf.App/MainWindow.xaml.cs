@@ -9,6 +9,7 @@ using System.Windows.Data;
 using System.Windows.Media;
 using EditorDbf.App.Models;
 using EditorDbf.App.ViewModels;
+using EditorDbf.App.Infrastructure;
 
 namespace EditorDbf.App;
 
@@ -117,6 +118,7 @@ public partial class MainWindow : Window
             {
                 // Alinear números a la derecha
                 textColumn.ElementStyle = CreateTextAlignmentStyle(HorizontalAlignment.Right);
+                EventBindingHelper.SetIsNumeric(textColumn, true);
             }
 
             // Resaltar celdas modificadas
@@ -163,6 +165,41 @@ public partial class MainWindow : Window
             style.Setters.Add(new Setter(TextBlock.MarginProperty, new Thickness(4, 0, 0, 0)));
             
         return style;
+    }
+
+    private void TableDataGrid_OnPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        // Solo nos interesa el punto del teclado numérico
+        if (e.Key == Key.Decimal)
+        {
+            if (sender is DataGrid dg && dg.CurrentColumn != null && EventBindingHelper.GetIsNumeric(dg.CurrentColumn))
+            {
+                if (dg.IsReadOnly) return;
+
+                // Si estamos en modo edición, el elemento enfocado debería ser un TextBox (o similar)
+                if (Keyboard.FocusedElement is TextBox textBox)
+                {
+                    // Usamos la cultura configurada para la ventana (es-AR) para obtener el separador
+                    var culture = this.Language.GetSpecificCulture();
+                    var separator = culture.NumberFormat.NumberDecimalSeparator;
+
+                    if (separator == ",")
+                    {
+                        e.Handled = true;
+
+                        // Simulamos la entrada de texto de una coma. 
+                        // Esto asegura que se respete el binding y eventos de cambio de texto.
+                        var textArgs = new TextCompositionEventArgs(InputManager.Current.PrimaryKeyboardDevice,
+                            new TextComposition(InputManager.Current, textBox, ","))
+                        {
+                            RoutedEvent = TextCompositionManager.TextInputEvent
+                        };
+
+                        textBox.RaiseEvent(textArgs);
+                    }
+                }
+            }
+        }
     }
 
     private void TableDataGrid_OnPreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
