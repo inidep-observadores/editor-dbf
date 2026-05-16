@@ -10,6 +10,7 @@ using EditorDbf.App.Infrastructure;
 using EditorDbf.App.Models;
 using EditorDbf.App.Services;
 using Microsoft.Win32;
+using EditorDbf.App.Views;
 
 namespace EditorDbf.App.ViewModels;
 
@@ -34,15 +35,21 @@ public sealed class MainViewModel : ObservableObject
         _state = _connectionRepository.Load();
 
         Connections = new ObservableCollection<ConnectionProfile>(_state.Connections);
+        foreach (var conn in Connections)
+        {
+            conn.Exists = Directory.Exists(conn.FolderPath);
+        }
         DbfFiles = new ObservableCollection<string>();
         OpenTables = new ObservableCollection<object>();
         AvailableCodePages = new ObservableCollection<CodePageOption>(CreateCodePageOptions());
 
         ToggleThemeCommand = new RelayCommand(ToggleTheme);
         AddConnectionCommand = new RelayCommand(AddConnection);
-        RemoveConnectionCommand = new RelayCommand(RemoveConnection, () => SelectedConnection is not null);
-        RefreshFilesCommand = new RelayCommand(RefreshFiles, () => SelectedConnection is not null);
-        OpenTableCommand = new RelayCommand(OpenSelectedTable, () => SelectedConnection is not null && !string.IsNullOrWhiteSpace(SelectedDbfFile));
+        RemoveConnectionCommand = new RelayCommand<ConnectionProfile>(p => RemoveConnection(p), (p) => p is not null || SelectedConnection is not null);
+        RenameConnectionCommand = new RelayCommand<ConnectionProfile>(p => RenameConnection(p), (p) => p is not null || SelectedConnection is not null);
+        OpenConnectionFolderCommand = new RelayCommand<ConnectionProfile>(p => OpenConnectionFolder(p), (p) => (p ?? SelectedConnection)?.Exists == true);
+        RefreshFilesCommand = new RelayCommand(RefreshFiles, () => SelectedConnection?.Exists == true);
+        OpenTableCommand = new RelayCommand(OpenSelectedTable, () => SelectedConnection?.Exists == true && !string.IsNullOrWhiteSpace(SelectedDbfFile));
         AddRecordCommand = new RelayCommand(AddRecord, () => ActiveTableTab is not null);
         DeleteSelectedRecordCommand = new RelayCommand(DeleteSelectedRecord, () => ActiveTableTab?.HasSelectedRecords == true);
         ReloadTableCommand = new RelayCommand(ReloadCurrentTable, () => ActiveTableTab is not null);
@@ -52,9 +59,9 @@ public sealed class MainViewModel : ObservableObject
         SaveCodePageToTableCommand = new RelayCommand(SaveCodePageToTableHeader, () => ActiveTableTab is not null && SelectedCodePageOption?.LanguageDriver is not null);
         CopyStructureCommand = new RelayCommand(CopyStructureToClipboard, () => ActiveTableTab is not null);
         CloseSelectedTabCommand = new RelayCommand(CloseSelectedTab, () => SelectedOpenTable is not null);
-        OpenSqlConsoleCommand = new RelayCommand(OpenSqlConsole, () => SelectedConnection is not null);
-        DeleteFileCommand = new RelayCommand(DeleteFile, () => SelectedConnection is not null && !string.IsNullOrWhiteSpace(SelectedDbfFile));
-        ShowInExplorerCommand = new RelayCommand(ShowInExplorer, () => SelectedConnection is not null && !string.IsNullOrWhiteSpace(SelectedDbfFile));
+        OpenSqlConsoleCommand = new RelayCommand(OpenSqlConsole, () => SelectedConnection?.Exists == true);
+        DeleteFileCommand = new RelayCommand<string>(p => DeleteFile(p), (p) => SelectedConnection is not null && (!string.IsNullOrWhiteSpace(p) || !string.IsNullOrWhiteSpace(SelectedDbfFile)));
+        ShowInExplorerCommand = new RelayCommand<string>(p => ShowInExplorer(p), (p) => SelectedConnection is not null && (!string.IsNullOrWhiteSpace(p) || !string.IsNullOrWhiteSpace(SelectedDbfFile)));
 
         TryRestoreLastConnection();
         IsDarkTheme = _state.IsDarkTheme;
@@ -79,6 +86,8 @@ public sealed class MainViewModel : ObservableObject
     public ICommand AddConnectionCommand { get; }
 
     public ICommand RemoveConnectionCommand { get; }
+    public ICommand RenameConnectionCommand { get; }
+    public ICommand OpenConnectionFolderCommand { get; }
 
     public ICommand RefreshFilesCommand { get; }
 
@@ -239,29 +248,31 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
-        var connection = new ConnectionProfile
+        var profile = new ConnectionProfile
         {
             Name = Path.GetFileName(folderPath),
-            FolderPath = folderPath
+            FolderPath = folderPath,
+            Exists = true
         };
 
-        Connections.Add(connection);
+        Connections.Add(profile);
         _state.Connections = [.. Connections];
         PersistState();
 
-        SelectedConnection = connection;
-        StatusMessage = $"Conexion creada: {connection.DisplayName}";
+        SelectedConnection = profile;
+        StatusMessage = $"Conexión creada: {profile.DisplayName}";
     }
 
-    private void RemoveConnection()
+    private void RemoveConnection(ConnectionProfile? connection = null)
     {
-        if (SelectedConnection is null)
+        var target = connection ?? SelectedConnection;
+        if (target is null)
         {
             return;
         }
 
         var confirm = MessageBox.Show(
-            $"¿Eliminar la conexion '{SelectedConnection.DisplayName}'?",
+            $"¿Eliminar la conexion '{target.DisplayName}'?",
             "Confirmar eliminacion de conexion",
             MessageBoxButton.YesNo,
             MessageBoxImage.Question);
@@ -271,18 +282,61 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
-        var connectionToRemove = SelectedConnection;
-        Connections.Remove(connectionToRemove);
+        Connections.Remove(target);
 
         _state.Connections = [.. Connections];
-        if (_state.LastConnectionId == connectionToRemove.Id)
+        if (_state.LastConnectionId == target.Id)
         {
             _state.LastConnectionId = Connections.FirstOrDefault()?.Id;
         }
 
         PersistState();
-        SelectedConnection = Connections.FirstOrDefault();
+        if (ReferenceEquals(SelectedConnection, target))
+        {
+            SelectedConnection = Connections.FirstOrDefault();
+        }
         StatusMessage = "Conexion eliminada.";
+    }
+    
+    private void RenameConnection(ConnectionProfile? connection = null)
+    {
+        var target = connection ?? SelectedConnection;
+        if (target is null) return;
+
+        var newName = Views.InputDialog.Show(
+            $"Ingrese un nombre personalizado para la conexión '{target.Name}':",
+            "Cambiar nombre de conexión",
+            target.CustomName ?? string.Empty);
+
+        if (newName != null)
+        {
+            target.CustomName = string.IsNullOrWhiteSpace(newName) ? null : newName.Trim();
+            PersistState();
+            StatusMessage = "Nombre de conexión actualizado.";
+        }
+    }
+
+    private void OpenConnectionFolder(ConnectionProfile? connection = null)
+    {
+        var target = connection ?? SelectedConnection;
+        if (target is null || !Directory.Exists(target.FolderPath))
+        {
+            return;
+        }
+
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                Arguments = $"\"{target.FolderPath}\"",
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error al abrir el explorador: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void RefreshFiles()
@@ -479,14 +533,15 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    private void DeleteFile()
+    private void DeleteFile(string? fileName = null)
     {
-        if (SelectedConnection is null || string.IsNullOrWhiteSpace(SelectedDbfFile)) return;
-
-        var filePath = Path.Combine(SelectedConnection.FolderPath, SelectedDbfFile);
+        var file = fileName ?? SelectedDbfFile;
+        if (SelectedConnection is null || string.IsNullOrWhiteSpace(file)) return;
+        
+        var filePath = Path.Combine(SelectedConnection.FolderPath, file);
         
         var result = MessageBox.Show(
-            $"¿Está seguro de que desea eliminar el archivo '{SelectedDbfFile}' permanentemente del disco?",
+            $"¿Está seguro de que desea eliminar el archivo '{file}' permanentemente del disco?",
             "Confirmar eliminación de archivo",
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning);
@@ -514,7 +569,7 @@ public sealed class MainViewModel : ObservableObject
                 if (File.Exists(memoPath)) File.Delete(memoPath);
             }
 
-            StatusMessage = $"Archivo eliminado: {SelectedDbfFile}";
+            StatusMessage = $"Archivo eliminado: {file}";
             RefreshFiles();
         }
         catch (Exception ex)
@@ -523,17 +578,23 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    private void ShowInExplorer()
+    private void ShowInExplorer(string? fileName = null)
     {
-        if (SelectedConnection is null || string.IsNullOrWhiteSpace(SelectedDbfFile)) return;
-
-        var filePath = Path.Combine(SelectedConnection.FolderPath, SelectedDbfFile);
+        var file = fileName ?? SelectedDbfFile;
+        if (SelectedConnection is null || string.IsNullOrWhiteSpace(file)) return;
+        
+        var filePath = Path.Combine(SelectedConnection.FolderPath, file);
         if (!File.Exists(filePath)) return;
 
         try
         {
             var argument = $"/select,\"{filePath}\"";
-            System.Diagnostics.Process.Start("explorer.exe", argument);
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                Arguments = argument,
+                UseShellExecute = true
+            });
         }
         catch (Exception ex)
         {
@@ -787,19 +848,23 @@ public sealed class MainViewModel : ObservableObject
 
     private void NotifyCommands()
     {
-        (RemoveConnectionCommand as RelayCommand)?.RaiseCanExecuteChanged();
-        (RefreshFilesCommand as RelayCommand)?.RaiseCanExecuteChanged();
-        (OpenTableCommand as RelayCommand)?.RaiseCanExecuteChanged();
-        (AddRecordCommand as RelayCommand)?.RaiseCanExecuteChanged();
-        (DeleteSelectedRecordCommand as RelayCommand)?.RaiseCanExecuteChanged();
-        (ReloadTableCommand as RelayCommand)?.RaiseCanExecuteChanged();
-        (SaveTableCommand as RelayCommand)?.RaiseCanExecuteChanged();
-        (ImportFromTableCommand as RelayCommand)?.RaiseCanExecuteChanged();
-        (ApplyCodePageCommand as RelayCommand)?.RaiseCanExecuteChanged();
-        (SaveCodePageToTableCommand as RelayCommand)?.RaiseCanExecuteChanged();
-        (CopyStructureCommand as RelayCommand)?.RaiseCanExecuteChanged();
-        (CloseSelectedTabCommand as RelayCommand)?.RaiseCanExecuteChanged();
-        (OpenSqlConsoleCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (RemoveConnectionCommand as IRelayCommand)?.RaiseCanExecuteChanged();
+        (RenameConnectionCommand as IRelayCommand)?.RaiseCanExecuteChanged();
+        (OpenConnectionFolderCommand as IRelayCommand)?.RaiseCanExecuteChanged();
+        (RefreshFilesCommand as IRelayCommand)?.RaiseCanExecuteChanged();
+        (OpenTableCommand as IRelayCommand)?.RaiseCanExecuteChanged();
+        (AddRecordCommand as IRelayCommand)?.RaiseCanExecuteChanged();
+        (DeleteSelectedRecordCommand as IRelayCommand)?.RaiseCanExecuteChanged();
+        (ReloadTableCommand as IRelayCommand)?.RaiseCanExecuteChanged();
+        (SaveTableCommand as IRelayCommand)?.RaiseCanExecuteChanged();
+        (ImportFromTableCommand as IRelayCommand)?.RaiseCanExecuteChanged();
+        (ApplyCodePageCommand as IRelayCommand)?.RaiseCanExecuteChanged();
+        (SaveCodePageToTableCommand as IRelayCommand)?.RaiseCanExecuteChanged();
+        (CopyStructureCommand as IRelayCommand)?.RaiseCanExecuteChanged();
+        (CloseSelectedTabCommand as IRelayCommand)?.RaiseCanExecuteChanged();
+        (OpenSqlConsoleCommand as IRelayCommand)?.RaiseCanExecuteChanged();
+        (DeleteFileCommand as IRelayCommand)?.RaiseCanExecuteChanged();
+        (ShowInExplorerCommand as IRelayCommand)?.RaiseCanExecuteChanged();
     }
 
     private int? ResolvePreferredCodePage(string filePath)

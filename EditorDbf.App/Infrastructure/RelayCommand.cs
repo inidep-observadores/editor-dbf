@@ -2,7 +2,12 @@ using System.Windows.Input;
 
 namespace EditorDbf.App.Infrastructure;
 
-public sealed class RelayCommand : ICommand
+public interface IRelayCommand : ICommand
+{
+    void RaiseCanExecuteChanged();
+}
+
+public sealed class RelayCommand : IRelayCommand
 {
     private readonly Action _execute;
     private readonly Func<bool>? _canExecute;
@@ -31,7 +36,7 @@ public sealed class RelayCommand : ICommand
     }
 }
 
-public sealed class RelayCommand<T> : ICommand
+public sealed class RelayCommand<T> : IRelayCommand
 {
     private readonly Action<T?> _execute;
     private readonly Func<T?, bool>? _canExecute;

@@ -21,6 +21,7 @@
     <Window.Resources>
         <infra:FilterParamOperatorConverter x:Key="FilterParamOperatorConverter"/>
         <infra:FilterDisplayConverter x:Key="FilterDisplayConverter"/>
+        <infra:BindingProxy x:Key="MainViewModelProxy" Data="{Binding}"/>
     </Window.Resources>
 
     <Grid>
@@ -225,9 +226,66 @@
                     <!-- Lista -->
                     <ListBox ItemsSource="{Binding Connections}"
                              SelectedItem="{Binding SelectedConnection, Mode=TwoWay}"
-                             DisplayMemberPath="DisplayName"
                              BorderThickness="0"
-                             Margin="4,4,4,4"/>
+                             Margin="4,4,4,4">
+                        <ListBox.InputBindings>
+                            <KeyBinding Key="F2" Command="{Binding RenameConnectionCommand}"/>
+                        </ListBox.InputBindings>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="2,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="{Binding EffectiveName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Exists}" Value="False">
+                                                            <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding FolderPath}" FontSize="11" 
+                                                   Foreground="{DynamicResource SecondaryTextBrush}" 
+                                                   TextTrimming="CharacterEllipsis" Opacity="0.8"/>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="&#xE783;" FontFamily="Segoe MDL2 Assets" 
+                                               Foreground="{DynamicResource DangerBrush}" VerticalAlignment="Center"
+                                               Margin="8,0,0,0" ToolTip="La carpeta no existe"
+                                               Visibility="{Binding Exists, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                                <Setter Property="ToolTip" Value="{Binding FolderPath}"/>
+                                <Setter Property="ContextMenu">
+                                    <Setter.Value>
+                                        <ContextMenu>
+                                            <MenuItem Header="Abrir en explorador" 
+                                                      Command="{Binding Data.OpenConnectionFolderCommand, Source={StaticResource MainViewModelProxy}}"
+                                                      CommandParameter="{Binding}"
+                                                      Icon="{infra:Icon Text=&#xED25;}"/>
+                                            <Separator/>
+                                            <MenuItem Header="Cambiar nombre..." 
+                                                      Command="{Binding Data.RenameConnectionCommand, Source={StaticResource MainViewModelProxy}}"
+                                                      CommandParameter="{Binding}"
+                                                      Icon="{infra:Icon Text=&#xE70F;}"/>
+                                            <MenuItem Header="Eliminar conexión" 
+                                                      Command="{Binding Data.RemoveConnectionCommand, Source={StaticResource MainViewModelProxy}}"
+                                                      CommandParameter="{Binding}"
+                                                      Icon="{infra:Icon Text=&#xE74D;}"/>
+                                        </ContextMenu>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                    </ListBox>
                 </DockPanel>
             </Border>
 
@@ -300,15 +358,17 @@
                                     <ListBox.ContextMenu>
                                         <ContextMenu>
                                             <MenuItem Header="Refrescar" 
-                                                      Command="{Binding DataContext.RefreshFilesCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                      Command="{Binding Data.RefreshFilesCommand, Source={StaticResource MainViewModelProxy}}"
                                                       Icon="{infra:Icon Text=&#xE72C;}"/>
                                             <Separator/>
                                             <MenuItem Header="Eliminar archivo" 
-                                                      Command="{Binding DataContext.DeleteFileCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                      Command="{Binding Data.DeleteFileCommand, Source={StaticResource MainViewModelProxy}}"
+                                                      CommandParameter="{Binding}"
                                                       Icon="{infra:Icon Text=&#xE74D;}"/>
                                             <Separator/>
-                                            <MenuItem Header="Mostrar en el explorador" 
-                                                      Command="{Binding DataContext.ShowInExplorerCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            <MenuItem Header="Abrir en el explorador" 
+                                                      Command="{Binding Data.ShowInExplorerCommand, Source={StaticResource MainViewModelProxy}}"
+                                                      CommandParameter="{Binding}"
                                                       Icon="{infra:Icon Text=&#xED25;}"/>
                                         </ContextMenu>
                                     </ListBox.ContextMenu>
@@ -628,6 +688,7 @@
                                         <DataGrid.InputBindings>
                                             <KeyBinding Key="Delete" 
                                                         Command="{Binding DataContext.DeleteSelectedRecordCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                            <KeyBinding Key="E" Modifiers="Ctrl" Command="ApplicationCommands.SelectAll"/>
                                         </DataGrid.InputBindings>
                                         <DataGrid.ContextMenu>
                                             <ContextMenu>
@@ -775,7 +836,11 @@
                                                       BorderThickness="0"
                                                       VirtualizingStackPanel.IsVirtualizing="True"
                                                       VirtualizingStackPanel.VirtualizationMode="Recycling"
-                                                      Visibility="{Binding Results, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                                      Visibility="{Binding Results, Converter={StaticResource NullToVisibilityConverter}}">
+                                                <DataGrid.InputBindings>
+                                                    <KeyBinding Key="E" Modifiers="Ctrl" Command="ApplicationCommands.SelectAll"/>
+                                                </DataGrid.InputBindings>
+                                            </DataGrid>
 
                                             <!-- Estado ocupado -->
                                             <Border Background="{DynamicResource OverlayBrush}" 
