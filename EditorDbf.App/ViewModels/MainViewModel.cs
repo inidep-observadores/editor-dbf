@@ -20,6 +20,9 @@ public sealed class MainViewModel : ObservableObject
     private readonly DbfSqlService _dbfSqlService;
     private readonly DbfTableService _dbfTableService;
     private readonly AppState _state;
+    private readonly IDialogService _dialogService;
+    private readonly IClipboardService _clipboardService;
+    private readonly IProcessService _processService;
     private ConnectionProfile? _selectedConnection;
     private string? _selectedDbfFile;
     private object? _selectedOpenTable;
@@ -27,11 +30,14 @@ public sealed class MainViewModel : ObservableObject
     private bool _isDarkTheme;
     private CodePageOption? _selectedCodePageOption;
 
-    public MainViewModel(ConnectionRepository connectionRepository, DbfTableService dbfTableService, DbfSqlService dbfSqlService)
+    public MainViewModel(ConnectionRepository connectionRepository, DbfTableService dbfTableService, DbfSqlService dbfSqlService, IDialogService dialogService, IClipboardService clipboardService, IProcessService processService)
     {
         _connectionRepository = connectionRepository;
         _dbfTableService = dbfTableService;
         _dbfSqlService = dbfSqlService;
+        _dialogService = dialogService;
+        _clipboardService = clipboardService;
+        _processService = processService;
         _state = _connectionRepository.Load();
 
         Connections = new ObservableCollection<ConnectionProfile>(_state.Connections);
@@ -223,20 +229,17 @@ public sealed class MainViewModel : ObservableObject
 
     private void AddConnection()
     {
-        var dialog = new OpenFileDialog
-        {
-            Title = "Seleccionar carpeta (puede elegir uno o varios archivos de la carpeta)",
-            Filter = "Archivos DBF (*.dbf)|*.dbf|Todos los archivos (*.*)|*.*",
-            CheckFileExists = true,
-            Multiselect = true
-        };
+        var filePaths = _dialogService.ShowOpenFileDialog(
+            "Seleccionar carpeta (puede elegir uno o varios archivos de la carpeta)",
+            "Archivos DBF (*.dbf)|*.dbf|Todos los archivos (*.*)|*.*",
+            multiselect: true);
 
-        if (dialog.ShowDialog() != true || dialog.FileNames.Length == 0)
+        if (filePaths == null || filePaths.Length == 0)
         {
             return;
         }
 
-        var folderPath = Path.GetDirectoryName(dialog.FileNames[0]);
+        var folderPath = Path.GetDirectoryName(filePaths[0]);
         if (string.IsNullOrWhiteSpace(folderPath))
         {
             return;
@@ -248,8 +251,8 @@ public sealed class MainViewModel : ObservableObject
         if (existing is not null)
         {
             SelectedConnection = existing;
-            MessageBox.Show($"La carpeta '{folderPath}' ya está registrada como una conexión.", 
-                "Conexión duplicada", MessageBoxButton.OK, MessageBoxImage.Information);
+            _dialogService.ShowInfo($"La carpeta '{folderPath}' ya está registrada como una conexión.",
+                "Conexión duplicada");
             StatusMessage = "La conexión ya existe y fue seleccionada.";
             return;
         }
@@ -286,11 +289,10 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
-        var confirm = MessageBox.Show(
+        var confirm = _dialogService.ShowConfirm(
             $"¿Eliminar la conexion '{target.DisplayName}'?",
             "Confirmar eliminacion de conexion",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question);
+            MessageBoxButton.YesNo);
 
         if (confirm != MessageBoxResult.Yes)
         {
@@ -318,7 +320,7 @@ public sealed class MainViewModel : ObservableObject
         var target = connection ?? SelectedConnection;
         if (target is null) return;
 
-        var newName = Views.InputDialog.Show(
+        var newName = _dialogService.ShowInput(
             $"Ingrese un nombre personalizado para la conexión '{target.Name}':",
             "Cambiar nombre de conexión",
             target.CustomName ?? string.Empty);
@@ -341,16 +343,11 @@ public sealed class MainViewModel : ObservableObject
 
         try
         {
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = "explorer.exe",
-                Arguments = $"\"{target.FolderPath}\"",
-                UseShellExecute = true
-            });
+            _processService.OpenFolder(target.FolderPath);
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error al abrir el explorador: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            _dialogService.ShowError($"Error al abrir el explorador: {ex.Message}", "Error");
         }
     }
 
@@ -400,7 +397,7 @@ public sealed class MainViewModel : ObservableObject
             var forcedCodePage = ResolvePreferredCodePage(filePath);
             var document = _dbfTableService.LoadTable(filePath, forcedCodePage);
             var structure = _dbfTableService.DescribeFields(document.Fields);
-            var tab = new TableTabViewModel(document, structure, CloseTab);
+            var tab = new TableTabViewModel(document, structure, CloseTab, _dialogService);
             tab.RequestRefreshFiles = RefreshFiles;
 
             OpenTables.Add(tab);
@@ -410,7 +407,7 @@ public sealed class MainViewModel : ObservableObject
         catch (Exception exception)
         {
             StatusMessage = $"Error al abrir: {exception.Message}";
-            MessageBox.Show(exception.Message, "Error al abrir DBF", MessageBoxButton.OK, MessageBoxImage.Error);
+            _dialogService.ShowError(exception.Message, "Error al abrir DBF");
         }
     }
 
@@ -444,8 +441,7 @@ public sealed class MainViewModel : ObservableObject
             ? "¿Está seguro de que desea borrar el registro seleccionado?"
             : $"¿Está seguro de que desea borrar los {count} registros seleccionados?";
 
-        var result = MessageBox.Show(confirmMsg, "Confirmar Eliminación", 
-            MessageBoxButton.YesNo, MessageBoxImage.Question);
+        var result = _dialogService.ShowConfirm(confirmMsg, "Confirmar Eliminación", MessageBoxButton.YesNo);
 
         if (result != MessageBoxResult.Yes) return;
 
@@ -464,11 +460,10 @@ public sealed class MainViewModel : ObservableObject
 
         if (ActiveTableTab.HasPendingChanges)
         {
-            var confirmReload = MessageBox.Show(
+            var confirmReload = _dialogService.ShowConfirm(
                 "Hay cambios sin guardar en esta tabla. ¿Recargar y descartarlos?",
                 "Confirmar recarga",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
+                MessageBoxButton.YesNo);
 
             if (confirmReload != MessageBoxResult.Yes) return;
         }
@@ -490,7 +485,7 @@ public sealed class MainViewModel : ObservableObject
         catch (Exception exception)
         {
             StatusMessage = $"Error al recargar: {exception.Message}";
-            MessageBox.Show(exception.Message, "Error al recargar", MessageBoxButton.OK, MessageBoxImage.Error);
+            _dialogService.ShowError(exception.Message, "Error al recargar");
         }
     }
 
@@ -508,11 +503,10 @@ public sealed class MainViewModel : ObservableObject
             if (otherDirtyTabs.Any())
             {
                 var fileNames = string.Join("\n- ", otherDirtyTabs.Select(t => t.FileName));
-                var result = MessageBox.Show(
+                var result = _dialogService.ShowConfirm(
                     $"También hay cambios pendientes en:\n- {fileNames}\n\n¿Desea guardarlos ahora?",
                     "Cambios pendientes en otras tablas",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question);
+                    MessageBoxButton.YesNo);
 
                 if (result == MessageBoxResult.Yes)
                 {
@@ -544,7 +538,7 @@ public sealed class MainViewModel : ObservableObject
         catch (Exception exception)
         {
             StatusMessage = $"Error al guardar: {exception.Message}";
-            MessageBox.Show(exception.Message, "Error al guardar", MessageBoxButton.OK, MessageBoxImage.Error);
+            _dialogService.ShowError(exception.Message, "Error al guardar");
             return false;
         }
     }
@@ -553,30 +547,29 @@ public sealed class MainViewModel : ObservableObject
     {
         var file = fileName ?? SelectedDbfFile;
         if (SelectedConnection is null || string.IsNullOrWhiteSpace(file)) return;
-        
+
         var filePath = Path.Combine(SelectedConnection.FolderPath, file);
-        
-        var result = MessageBox.Show(
+
+        var result = _dialogService.ShowConfirm(
             $"¿Está seguro de que desea eliminar el archivo '{file}' permanentemente del disco?",
             "Confirmar eliminación de archivo",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
+            MessageBoxButton.YesNo);
 
         if (result != MessageBoxResult.Yes) return;
 
         try
         {
             // Cerrar pestaña si está abierta
-            var tab = OpenTables.OfType<TableTabViewModel>().FirstOrDefault(t => 
+            var tab = OpenTables.OfType<TableTabViewModel>().FirstOrDefault(t =>
                 string.Equals(t.FilePath, filePath, StringComparison.OrdinalIgnoreCase));
-            
+
             if (tab != null)
             {
                 CloseTab(tab);
             }
 
             File.Delete(filePath);
-            
+
             // Eliminar archivos de memo si existen
             var memoExtensions = new[] { ".fpt", ".dbt", ".FPT", ".DBT" };
             foreach (var ext in memoExtensions)
@@ -590,7 +583,7 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error al eliminar archivo: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            _dialogService.ShowError($"Error al eliminar archivo: {ex.Message}", "Error");
         }
     }
 
@@ -603,7 +596,7 @@ public sealed class MainViewModel : ObservableObject
         var oldPath = Path.Combine(directory, oldFileName);
         if (!File.Exists(oldPath)) return;
 
-        var newFileName = Views.InputDialog.Show(
+        var newFileName = _dialogService.ShowInput(
             $"Ingrese el nuevo nombre para el archivo '{oldFileName}':",
             "Renombrar archivo",
             oldFileName);
@@ -623,16 +616,16 @@ public sealed class MainViewModel : ObservableObject
 
         if (File.Exists(newPath))
         {
-            MessageBox.Show($"El archivo '{newFileName}' ya existe.", "Error al renombrar", MessageBoxButton.OK, MessageBoxImage.Error);
+            _dialogService.ShowError($"El archivo '{newFileName}' ya existe.", "Error al renombrar");
             return;
         }
 
         try
         {
             // Cerrar pestaña si está abierta (o preguntar para guardar cambios)
-            var tab = OpenTables.OfType<TableTabViewModel>().FirstOrDefault(t => 
+            var tab = OpenTables.OfType<TableTabViewModel>().FirstOrDefault(t =>
                 string.Equals(t.FilePath, oldPath, StringComparison.OrdinalIgnoreCase));
-            
+
             if (tab != null)
             {
                 if (!TryCloseTab(tab)) return;
@@ -656,13 +649,13 @@ public sealed class MainViewModel : ObservableObject
 
             StatusMessage = $"Archivo renombrado: {oldFileName} -> {newFileName}";
             RefreshFiles();
-            
+
             // Intentar seleccionar el nuevo archivo en la lista
             SelectedDbfFile = newFileName;
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error al renombrar archivo: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            _dialogService.ShowError($"Error al renombrar archivo: {ex.Message}", "Error");
         }
     }
 
@@ -670,23 +663,17 @@ public sealed class MainViewModel : ObservableObject
     {
         var file = fileName ?? SelectedDbfFile;
         if (SelectedConnection is null || string.IsNullOrWhiteSpace(file)) return;
-        
+
         var filePath = Path.Combine(SelectedConnection.FolderPath, file);
         if (!File.Exists(filePath)) return;
 
         try
         {
-            var argument = $"/select,\"{filePath}\"";
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = "explorer.exe",
-                Arguments = argument,
-                UseShellExecute = true
-            });
+            _processService.ShowFileInExplorer(filePath);
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error al abrir el explorador: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            _dialogService.ShowError($"Error al abrir el explorador: {ex.Message}", "Error");
         }
     }
 
@@ -694,30 +681,25 @@ public sealed class MainViewModel : ObservableObject
     {
         if (ActiveTableTab is null) return;
 
-        var dialog = new OpenFileDialog
-        {
-            Title = "Seleccionar DBF de origen para APPEND FROM",
-            Filter = "Archivos DBF (*.dbf)|*.dbf",
-            CheckFileExists = true,
-            Multiselect = false
-        };
+        var filePaths = _dialogService.ShowOpenFileDialog(
+            "Seleccionar DBF de origen para APPEND FROM",
+            "Archivos DBF (*.dbf)|*.dbf",
+            multiselect: false);
 
-        if (dialog.ShowDialog() != true) return;
+        if (filePaths == null || filePaths.Length == 0) return;
 
         try
         {
-            var sourceForcedCodePage = ResolvePreferredCodePage(dialog.FileName);
-            var sourceDocument = _dbfTableService.LoadTable(dialog.FileName, sourceForcedCodePage);
+            var sourceForcedCodePage = ResolvePreferredCodePage(filePaths[0]);
+            var sourceDocument = _dbfTableService.LoadTable(filePaths[0], sourceForcedCodePage);
             if (!_dbfTableService.AreCompatibleStructures(
                     ActiveTableTab.Document.Fields,
                     sourceDocument.Fields,
                     out var mismatchReason))
             {
-                MessageBox.Show(
+                _dialogService.ShowInfo(
                     $"Importacion rechazada. Estructura incompatible: {mismatchReason}",
-                    "APPEND FROM",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                    "APPEND FROM");
                 StatusMessage = "Importacion rechazada por incompatibilidad de estructura.";
                 return;
             }
@@ -734,7 +716,7 @@ public sealed class MainViewModel : ObservableObject
         catch (Exception exception)
         {
             StatusMessage = $"Error al importar: {exception.Message}";
-            MessageBox.Show(exception.Message, "Error de importacion", MessageBoxButton.OK, MessageBoxImage.Error);
+            _dialogService.ShowError(exception.Message, "Error de importacion");
         }
     }
 
@@ -759,7 +741,7 @@ public sealed class MainViewModel : ObservableObject
         catch (Exception exception)
         {
             StatusMessage = $"Error al aplicar codepage: {exception.Message}";
-            MessageBox.Show(exception.Message, "Error de codepage", MessageBoxButton.OK, MessageBoxImage.Error);
+            _dialogService.ShowError(exception.Message, "Error de codepage");
         }
     }
 
@@ -785,7 +767,7 @@ public sealed class MainViewModel : ObservableObject
         catch (Exception exception)
         {
             StatusMessage = $"Error al guardar codepage: {exception.Message}";
-            MessageBox.Show(exception.Message, "Error de codepage", MessageBoxButton.OK, MessageBoxImage.Error);
+            _dialogService.ShowError(exception.Message, "Error de codepage");
         }
     }
 
@@ -800,7 +782,7 @@ public sealed class MainViewModel : ObservableObject
             lines.Add($"{field.Name}\t{field.Type}\t{field.Length}\t{field.DecimalCount}");
         }
 
-        Clipboard.SetText(string.Join(Environment.NewLine, lines));
+        _clipboardService.SetText(string.Join(Environment.NewLine, lines));
         StatusMessage = "Estructura de tabla copiada al portapapeles.";
     }
 
@@ -845,11 +827,10 @@ public sealed class MainViewModel : ObservableObject
     {
         if (tab is TableTabViewModel tableTab && tableTab.HasPendingChanges)
         {
-            var result = MessageBox.Show(
+            var result = _dialogService.ShowConfirm(
                 $"La tabla '{tableTab.FileName}' tiene cambios pendientes. ¿Desea guardarlos antes de cerrar?",
                 "Cambios pendientes",
-                MessageBoxButton.YesNoCancel,
-                MessageBoxImage.Question);
+                MessageBoxButton.YesNoCancel);
 
             if (result == MessageBoxResult.Cancel)
             {

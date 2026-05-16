@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows;
+using EditorDbf.App.Infrastructure;
 using EditorDbf.App.Services;
 using EditorDbf.App.ViewModels;
 
@@ -54,7 +55,12 @@ public partial class App : Application
         var connectionRepository = new ConnectionRepository();
         var dbfTableService = new DbfTableService();
         var dbfSqlService = new DbfSqlService(dbfTableService);
-        var mainViewModel = new MainViewModel(connectionRepository, dbfTableService, dbfSqlService);
+
+        var dialogService = new WpfDialogService();
+        var clipboardService = new WpfClipboardService();
+        var processService = new WpfProcessService();
+
+        var mainViewModel = new MainViewModel(connectionRepository, dbfTableService, dbfSqlService, dialogService, clipboardService, processService);
 
         var mainWindow = new MainWindow
         {

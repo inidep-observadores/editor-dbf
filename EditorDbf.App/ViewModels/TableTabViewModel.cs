@@ -10,6 +10,7 @@ using EditorDbf.App.Infrastructure;
 using EditorDbf.App.Models;
 using EditorDbf.App.Services;
 using EditorDbf.App.Views;
+using static EditorDbf.App.ViewModels.TableTabViewModel;
 
 namespace EditorDbf.App.ViewModels;
 
@@ -26,14 +27,17 @@ public sealed class TableTabViewModel : ObservableObject
     private string _currentFilterText = string.Empty;
     private string _sqlFilter = string.Empty;
     private readonly List<DataRowView> _selectedRecords = [];
+    private readonly IDialogService _dialogService;
     public Action? RequestRefreshFiles { get; set; }
 
     public TableTabViewModel(
         DbfTableDocument document,
         IReadOnlyList<DbfFieldDescriptor> structure,
-        Action<TableTabViewModel> closeAction)
+        Action<TableTabViewModel> closeAction,
+        IDialogService dialogService)
     {
         _document = document;
+        _dialogService = dialogService;
 
         TableStructure = new ObservableCollection<DbfFieldDescriptor>(structure);
         FilterColumns = new ObservableCollection<string>(document.DataTable.Columns.Cast<DataColumn>().Select(c => c.ColumnName));
@@ -338,15 +342,13 @@ public sealed class TableTabViewModel : ObservableObject
                     service.ExportTable(_document, CurrentTableView, path, ext);
                 }
 
-                System.Windows.MessageBox.Show($"Exportación completada con éxito en:\n{path}",
-                    "Exportar", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                
+                _dialogService.ShowInfo($"Exportación completada con éxito en:\n{path}", "Exportar");
+
                 RequestRefreshFiles?.Invoke();
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"Error al exportar: {ex.Message}", "Error de Exportación",
-                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                _dialogService.ShowError($"Error al exportar: {ex.Message}", "Error de Exportación");
             }
         }
     }
@@ -422,7 +424,7 @@ public sealed class TableTabViewModel : ObservableObject
 
         var currentValue = LastRightClickedCellInfo.Value?.ToString() ?? string.Empty;
 
-        var newValue = InputDialog.Show(
+        var newValue = _dialogService.ShowInput(
             $"Ingrese el nuevo valor para la columna [{columnName}]:",
             "Cambiar Valor",
             currentValue);
@@ -448,8 +450,7 @@ public sealed class TableTabViewModel : ObservableObject
             ? $"¿Está seguro de que desea cambiar el valor de [{columnName}] a '{newValue}' en los {count} registros seleccionados?"
             : $"¿Está seguro de que desea cambiar el valor de [{columnName}] a '{newValue}'?";
 
-        var result = System.Windows.MessageBox.Show(confirmMsg, "Confirmar Cambio", 
-            System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
+        var result = _dialogService.ShowConfirm(confirmMsg, "Confirmar Cambio", System.Windows.MessageBoxButton.YesNo);
 
         if (result != System.Windows.MessageBoxResult.Yes) return;
 
@@ -468,8 +469,7 @@ public sealed class TableTabViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show($"Error al cambiar valor: {ex.Message}", "Error de Edición", 
-                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            _dialogService.ShowError($"Error al cambiar valor: {ex.Message}", "Error de Edición");
         }
     }
 
@@ -489,7 +489,7 @@ public sealed class TableTabViewModel : ObservableObject
             _ => part
         };
 
-        var newValueStr = InputDialog.Show(
+        var newValueStr = _dialogService.ShowInput(
             $"Ingrese el nuevo valor para el {partName} de la columna [{columnName}]:",
             $"Cambiar {partName}",
             string.Empty);
@@ -499,17 +499,17 @@ public sealed class TableTabViewModel : ObservableObject
         // Validar rangos básicos
         if (part.Equals("Day", StringComparison.OrdinalIgnoreCase) && (newValue < 1 || newValue > 31))
         {
-            System.Windows.MessageBox.Show("El día debe estar entre 1 y 31.", "Valor Inválido", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            _dialogService.ShowInfo("El día debe estar entre 1 y 31.", "Valor Inválido");
             return;
         }
         if (part.Equals("Month", StringComparison.OrdinalIgnoreCase) && (newValue < 1 || newValue > 12))
         {
-            System.Windows.MessageBox.Show("El mes debe estar entre 1 y 12.", "Valor Inválido", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            _dialogService.ShowInfo("El mes debe estar entre 1 y 12.", "Valor Inválido");
             return;
         }
         if (part.Equals("Year", StringComparison.OrdinalIgnoreCase) && (newValue < 1000 || newValue > 9999))
         {
-            System.Windows.MessageBox.Show("El año debe ser un valor de 4 dígitos (1000-9999).", "Valor Inválido", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            _dialogService.ShowInfo("El año debe ser un valor de 4 dígitos (1000-9999).", "Valor Inválido");
             return;
         }
 
@@ -532,8 +532,7 @@ public sealed class TableTabViewModel : ObservableObject
             ? $"¿Está seguro de que desea cambiar el {partName} a '{newValue}' en los {count} registros seleccionados?"
             : $"¿Está seguro de que desea cambiar el {partName} a '{newValue}'?";
 
-        var result = System.Windows.MessageBox.Show(confirmMsg, "Confirmar Cambio",
-            System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
+        var result = _dialogService.ShowConfirm(confirmMsg, "Confirmar Cambio", System.Windows.MessageBoxButton.YesNo);
 
         if (result != System.Windows.MessageBoxResult.Yes) return;
 
@@ -575,14 +574,13 @@ public sealed class TableTabViewModel : ObservableObject
 
             if (errors > 0)
             {
-                System.Windows.MessageBox.Show($"Se completó la operación, pero {errors} registros no pudieron ser actualizados debido a que la fecha resultante sería inválida (ej. 31 de febrero).",
-                    "Aviso", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                _dialogService.ShowInfo($"Se completó la operación, pero {errors} registros no pudieron ser actualizados debido a que la fecha resultante sería inválida (ej. 31 de febrero).",
+                    "Aviso");
             }
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show($"Error al cambiar parte de la fecha: {ex.Message}", "Error de Edición",
-                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            _dialogService.ShowError($"Error al cambiar parte de la fecha: {ex.Message}", "Error de Edición");
         }
     }
 
@@ -643,8 +641,7 @@ public sealed class TableTabViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            // Podríamos mostrar un mensaje de error si la expresión SQL es inválida
-            System.Windows.MessageBox.Show($"Filtro inválido: {ex.Message}", "Error de Filtro", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            _dialogService.ShowError($"Filtro inválido: {ex.Message}", "Error de Filtro");
         }
     }
 
@@ -664,7 +661,7 @@ public sealed class TableTabViewModel : ObservableObject
             _ => p.Operator
         };
 
-        var newValue = InputDialog.Show(
+        var newValue = _dialogService.ShowInput(
             $"Ingrese valor para el filtro [{p.ColumnName}] {opDisplay}:",
             "Filtro Personalizado",
             p.Value?.ToString() ?? string.Empty);
@@ -679,14 +676,14 @@ public sealed class TableTabViewModel : ObservableObject
     {
         if (p == null) return;
 
-        var val1 = InputDialog.Show(
+        var val1 = _dialogService.ShowInput(
             $"Ingrese el valor MÍNIMO para el rango de [{p.ColumnName}]:",
             "Filtro Entre (Límite Inferior)",
             string.Empty);
 
         if (val1 == null) return;
 
-        var val2 = InputDialog.Show(
+        var val2 = _dialogService.ShowInput(
             $"Ingrese el valor MÁXIMO para el rango de [{p.ColumnName}]:",
             "Filtro Entre (Límite Superior)",
             string.Empty);
@@ -704,8 +701,7 @@ public sealed class TableTabViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show($"Valores inválidos para el rango: {ex.Message}", "Error de Filtro", 
-                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            _dialogService.ShowError($"Valores inválidos para el rango: {ex.Message}", "Error de Filtro");
         }
     }
 
@@ -770,7 +766,7 @@ public sealed class TableTabViewModel : ObservableObject
         return filterOperator is "=" or "<>" or ">" or ">=" or "<" or "<=" or "CONTIENE";
     }
 
-    private static string BuildFilterExpression(DataColumn column, string filterOperator, object? rawValue)
+    internal static string BuildFilterExpression(DataColumn column, string filterOperator, object? rawValue)
     {
         var safeColumn = $"[{EscapeColumnName(column.ColumnName)}]";
         var value = rawValue;
@@ -814,7 +810,7 @@ public sealed class TableTabViewModel : ObservableObject
         };
     }
 
-    private static string BuildLiteral(Type dataType, object? value)
+    internal static string BuildLiteral(Type dataType, object? value)
     {
         if (value == null || value == DBNull.Value) return "NULL";
 
