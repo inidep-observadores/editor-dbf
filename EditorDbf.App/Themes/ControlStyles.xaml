@@ -324,6 +324,9 @@
                             <Setter TargetName="bd" Property="BorderBrush" Value="{DynamicResource ListItemSelectedAccentBrush}"/>
                             <Setter Property="Foreground" Value="{DynamicResource ListItemSelectedTextBrush}"/>
                         </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="bd" Property="Opacity" Value="0.4"/>
+                        </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
@@ -339,33 +342,42 @@
         <Setter Property="VerticalGridLinesBrush" Value="{DynamicResource DividerBrush}"/>
         <Setter Property="AlternatingRowBackground" Value="{DynamicResource GridAltRowBackgroundBrush}"/>
         <Setter Property="RowBackground" Value="Transparent"/>
-        <Setter Property="RowHeight" Value="28"/>
+        <Setter Property="RowHeight" Value="32"/>
         <Setter Property="ColumnHeaderHeight" Value="32"/>
+        <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+        <Setter Property="HeadersVisibility" Value="Column"/>
+        <Setter Property="FontSize" Value="13"/>
     </Style>
 
     <Style TargetType="DataGridRow">
         <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
         <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="{DynamicResource GridRowHoverBackgroundBrush}"/>
             </Trigger>
             <Trigger Property="IsSelected" Value="True">
                 <Setter Property="Background" Value="{DynamicResource GridSelectedRowBrush}"/>
-                <Setter Property="Foreground" Value="{DynamicResource ListItemSelectedTextBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
             </Trigger>
         </Style.Triggers>
     </Style>
 
     <Style TargetType="DataGridCell">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="8,0"/>
-        <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="DataGridCell">
                     <Border Padding="{TemplateBinding Padding}"
-                            Background="Transparent">
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            SnapsToDevicePixels="True">
                         <ContentPresenter VerticalAlignment="Center"/>
                     </Border>
                 </ControlTemplate>
@@ -373,7 +385,13 @@
         </Setter>
         <Style.Triggers>
             <Trigger Property="IsSelected" Value="True">
-                <Setter Property="Foreground" Value="{DynamicResource ListItemSelectedTextBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+                <!-- Forzamos fondo transparente en selección para que mande la fila -->
+                <Setter Property="Background" Value="Transparent"/>
+            </Trigger>
+            <Trigger Property="IsFocused" Value="True">
+                <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                <Setter Property="Background" Value="{DynamicResource GridActiveCellBrush}"/>
             </Trigger>
         </Style.Triggers>
     </Style>
@@ -433,7 +451,7 @@
             </Setter.Value>
         </Setter>
     </Style>
-
+    
     <!-- ===== TAB CONTROL ===== -->
     <Style TargetType="TabControl">
         <Setter Property="Background" Value="{DynamicResource LayerBackgroundBrush}"/>

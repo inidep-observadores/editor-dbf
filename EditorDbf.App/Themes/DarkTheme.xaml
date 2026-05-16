@@ -44,6 +44,7 @@
     <SolidColorBrush x:Key="GridAltRowBackgroundBrush"       Color="#313131"/>
     <SolidColorBrush x:Key="GridRowHoverBackgroundBrush"     Color="#3D3D3D"/>
     <SolidColorBrush x:Key="GridSelectedRowBrush"            Color="#1A3E4F"/>
+    <SolidColorBrush x:Key="GridActiveCellBrush"             Color="#254E65"/>
 
     <!-- Tabs -->
     <SolidColorBrush x:Key="TabStripBackgroundBrush"         Color="#252525"/>
