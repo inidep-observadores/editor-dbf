@@ -21,6 +21,15 @@ public partial class MainWindow : Window
         // Usamos es-AR como base para asegurar dd/MM/yyyy independientemente de la configuración regional del SO
         this.Language = System.Windows.Markup.XmlLanguage.GetLanguage("es-AR");
         DataContextChanged += OnDataContextChanged;
+        Activated += OnWindowActivated;
+    }
+
+    private void OnWindowActivated(object? sender, EventArgs e)
+    {
+        if (DataContext is MainViewModel viewModel)
+        {
+            viewModel.ValidateConnections();
+        }
     }
 
     protected override void OnClosing(CancelEventArgs e)

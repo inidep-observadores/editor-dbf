@@ -221,18 +221,20 @@ public sealed class MainViewModel : ObservableObject
 
     private void AddConnection()
     {
-        var dialog = new OpenFolderDialog
+        var dialog = new OpenFileDialog
         {
-            Title = "Seleccionar carpeta con archivos DBF",
-            Multiselect = false
+            Title = "Seleccionar carpeta (puede elegir uno o varios archivos de la carpeta)",
+            Filter = "Archivos DBF (*.dbf)|*.dbf|Todos los archivos (*.*)|*.*",
+            CheckFileExists = true,
+            Multiselect = true
         };
 
-        if (dialog.ShowDialog() != true)
+        if (dialog.ShowDialog() != true || dialog.FileNames.Length == 0)
         {
             return;
         }
 
-        var folderPath = dialog.FolderName.Trim();
+        var folderPath = Path.GetDirectoryName(dialog.FileNames[0]);
         if (string.IsNullOrWhiteSpace(folderPath))
         {
             return;
@@ -244,7 +246,9 @@ public sealed class MainViewModel : ObservableObject
         if (existing is not null)
         {
             SelectedConnection = existing;
-            StatusMessage = "La conexion ya existe y fue seleccionada.";
+            MessageBox.Show($"La carpeta '{folderPath}' ya está registrada como una conexión.", 
+                "Conexión duplicada", MessageBoxButton.OK, MessageBoxImage.Information);
+            StatusMessage = "La conexión ya existe y fue seleccionada.";
             return;
         }
 
@@ -261,6 +265,15 @@ public sealed class MainViewModel : ObservableObject
 
         SelectedConnection = profile;
         StatusMessage = $"Conexión creada: {profile.DisplayName}";
+    }
+
+    public void ValidateConnections()
+    {
+        foreach (var conn in Connections)
+        {
+            conn.Exists = Directory.Exists(conn.FolderPath);
+        }
+        NotifyCommands();
     }
 
     private void RemoveConnection(ConnectionProfile? connection = null)
