@@ -13,6 +13,7 @@
             <!-- Converters globales -->
             <infra:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
             <infra:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+            <infra:CellModifiedConverter x:Key="CellModifiedConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

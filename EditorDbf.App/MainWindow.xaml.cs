@@ -99,15 +99,70 @@ public partial class MainWindow : Window
 
     private void OnAutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
     {
-        if (e.PropertyType == typeof(DateTime) && e.Column is DataGridTextColumn textColumn)
+        if (e.Column is DataGridTextColumn textColumn)
         {
-            if (textColumn.Binding is Binding binding)
+            if (e.PropertyType == typeof(DateTime))
             {
-                binding.StringFormat = "dd/MM/yyyy";
-                // Asegurar que la edición use el formato dd/MM/yyyy para parsear la fecha ingresada
-                binding.ConverterCulture = System.Globalization.CultureInfo.GetCultureInfo("es-AR");
+                if (textColumn.Binding is Binding binding)
+                {
+                    binding.StringFormat = "dd/MM/yyyy";
+                    // Asegurar que la edición use el formato dd/MM/yyyy para parsear la fecha ingresada
+                    binding.ConverterCulture = System.Globalization.CultureInfo.GetCultureInfo("es-AR");
+                }
+
+                // Centrar fechas
+                textColumn.ElementStyle = CreateTextAlignmentStyle(HorizontalAlignment.Center);
             }
+            else if (IsNumericType(e.PropertyType))
+            {
+                // Alinear números a la derecha
+                textColumn.ElementStyle = CreateTextAlignmentStyle(HorizontalAlignment.Right);
+            }
+
+            // Resaltar celdas modificadas
+            var cellStyle = new Style(typeof(DataGridCell));
+            if (Application.Current.TryFindResource(typeof(DataGridCell)) is Style baseStyle)
+                cellStyle.BasedOn = baseStyle;
+
+            var multiBinding = new MultiBinding
+            {
+                Converter = (IMultiValueConverter)Application.Current.Resources["CellModifiedConverter"]
+            };
+            multiBinding.Bindings.Add(new Binding()); // DataRowView (values[0])
+            multiBinding.Bindings.Add(new Binding { Path = new PropertyPath($"[{e.PropertyName}]") }); // Valor de la celda (values[1]) para disparar el refresco
+            multiBinding.Bindings.Add(new Binding { Source = e.PropertyName }); // Nombre de la columna (values[2])
+
+            var trigger = new DataTrigger
+            {
+                Binding = multiBinding,
+                Value = true
+            };
+            trigger.Setters.Add(new Setter(DataGridCell.BackgroundProperty, new DynamicResourceExtension("GridModifiedCellBrush")));
+
+            cellStyle.Triggers.Add(trigger);
+            textColumn.CellStyle = cellStyle;
         }
+    }
+
+    private static bool IsNumericType(Type type)
+    {
+        return type == typeof(int) || type == typeof(decimal) || type == typeof(double) ||
+               type == typeof(float) || type == typeof(long) || type == typeof(short) ||
+               type == typeof(byte) || type == typeof(uint) || type == typeof(ulong) || type == typeof(ushort);
+    }
+
+    private Style CreateTextAlignmentStyle(HorizontalAlignment alignment)
+    {
+        var style = new Style(typeof(TextBlock));
+        style.Setters.Add(new Setter(TextBlock.HorizontalAlignmentProperty, alignment));
+        
+        // Añadir un pequeño margen lateral para que el texto no pegue contra el borde de la celda
+        if (alignment == HorizontalAlignment.Right)
+            style.Setters.Add(new Setter(TextBlock.MarginProperty, new Thickness(0, 0, 4, 0)));
+        else if (alignment == HorizontalAlignment.Left)
+            style.Setters.Add(new Setter(TextBlock.MarginProperty, new Thickness(4, 0, 0, 0)));
+            
+        return style;
     }
 
     private void TableDataGrid_OnPreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
