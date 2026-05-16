@@ -60,6 +60,7 @@ public partial class App : Application
         {
             DataContext = mainViewModel
         };
+        this.MainWindow = mainWindow;
 
         // Cerramos el splash solo cuando la ventana principal haya cargado
         mainWindow.Loaded += (s, args) => splash.Close();

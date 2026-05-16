@@ -15,7 +15,7 @@ namespace EditorDbf.App.ViewModels;
 
 public sealed class TableTabViewModel : ObservableObject
 {
-    private static readonly string[] FilterOperatorsCatalog = ["=", "<>", ">", "<", "CONTIENE", "VACIO", "NO VACIO"];
+    private static readonly string[] FilterOperatorsCatalog = ["=", "<>", ">", ">=", "<", "<=", "CONTIENE", "VACIO", "NO VACIO"];
 
     private DbfTableDocument _document;
     private DataRowView? _selectedRecord;
@@ -47,8 +47,10 @@ public sealed class TableTabViewModel : ObservableObject
         // Nuevos comandos para filtrado avanzado
         ApplySqlFilterCommand = new RelayCommand(ApplySqlFilter);
         FilterByValueCommand = new RelayCommand<object>(FilterByValue);
-        FilterCustomCommand = new RelayCommand(() => FilterCustom(LastRightClickedCellInfo));
+        FilterCustomCommand = new RelayCommand<object>(p => FilterCustom(p as FilterParams ?? LastRightClickedCellInfo));
+        FilterBetweenCommand = new RelayCommand<object>(p => FilterBetween(p as FilterParams ?? LastRightClickedCellInfo));
         ChangeValueCommand = new RelayCommand(ChangeValue);
+        InvertSelectionCommand = new RelayCommand<object>(InvertSelection);
 
         SubscribeToDataTable();
         UpdateRecordCounts();
@@ -79,7 +81,9 @@ public sealed class TableTabViewModel : ObservableObject
     public ICommand ApplySqlFilterCommand { get; }
     public ICommand FilterByValueCommand { get; }
     public ICommand FilterCustomCommand { get; }
+    public ICommand FilterBetweenCommand { get; }
     public ICommand ChangeValueCommand { get; }
+    public ICommand InvertSelectionCommand { get; }
 
     public DataView CurrentTableView => _document.DataTable.DefaultView;
 
@@ -419,6 +423,22 @@ public sealed class TableTabViewModel : ObservableObject
         }
     }
 
+    private void InvertSelection(object? parameter)
+    {
+        if (parameter is System.Windows.Controls.DataGrid dataGrid)
+        {
+            var selectedItems = dataGrid.SelectedItems.Cast<object>().ToList();
+            dataGrid.UnselectAll();
+            foreach (var item in dataGrid.Items)
+            {
+                if (!selectedItems.Contains(item))
+                {
+                    dataGrid.SelectedItems.Add(item);
+                }
+            }
+        }
+    }
+
     private object? ConvertValue(string value, Type targetType)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -469,14 +489,60 @@ public sealed class TableTabViewModel : ObservableObject
     {
         if (p == null) return;
 
+        string opDisplay = p.Operator switch
+        {
+            "=" => "es igual a",
+            "<>" => "es distinto que",
+            ">" => "es mayor que",
+            ">=" => "es mayor o igual que",
+            "<" => "es menor que",
+            "<=" => "es menor o igual que",
+            "CONTIENE" => "contiene",
+            _ => p.Operator
+        };
+
         var newValue = InputDialog.Show(
-            $"Ingrese valor para el filtro [{p.ColumnName}] {p.Operator}:",
+            $"Ingrese valor para el filtro [{p.ColumnName}] {opDisplay}:",
             "Filtro Personalizado",
             p.Value?.ToString() ?? string.Empty);
 
         if (newValue != null)
         {
             ApplyFilter(p with { Value = newValue });
+        }
+    }
+
+    private void FilterBetween(FilterParams? p)
+    {
+        if (p == null) return;
+
+        var val1 = InputDialog.Show(
+            $"Ingrese el valor MÍNIMO para el rango de [{p.ColumnName}]:",
+            "Filtro Entre (Límite Inferior)",
+            string.Empty);
+
+        if (val1 == null) return;
+
+        var val2 = InputDialog.Show(
+            $"Ingrese el valor MÁXIMO para el rango de [{p.ColumnName}]:",
+            "Filtro Entre (Límite Superior)",
+            string.Empty);
+
+        if (val2 == null) return;
+
+        var column = _document.DataTable.Columns[p.ColumnName];
+        if (column == null) return;
+
+        try
+        {
+            var expr1 = BuildFilterExpression(column, ">=", val1);
+            var expr2 = BuildFilterExpression(column, "<=", val2);
+            CombineAndApplyFilter($"({expr1}) AND ({expr2})");
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show($"Valores inválidos para el rango: {ex.Message}", "Error de Filtro", 
+                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
         }
     }
 
@@ -538,7 +604,7 @@ public sealed class TableTabViewModel : ObservableObject
 
     private static bool OperatorNeedsValue(string filterOperator)
     {
-        return filterOperator is "=" or "<>" or ">" or "<" or "CONTIENE";
+        return filterOperator is "=" or "<>" or ">" or ">=" or "<" or "<=" or "CONTIENE";
     }
 
     private static string BuildFilterExpression(DataColumn column, string filterOperator, string rawValue)
@@ -554,8 +620,10 @@ public sealed class TableTabViewModel : ObservableObject
             "NO VACIO" => column.DataType == typeof(string)
                 ? $"{safeColumn} IS NOT NULL AND {safeColumn} <> ''"
                 : $"{safeColumn} IS NOT NULL",
-            "CONTIENE" => $"Convert({safeColumn}, 'System.String') LIKE '%{EscapeStringLiteral(value)}%'",
-            "=" or "<>" or ">" or "<" => $"{safeColumn} {filterOperator} {BuildLiteral(column.DataType, value)}",
+            "CONTIENE" => column.DataType == typeof(string)
+                ? $"{safeColumn} LIKE '%{EscapeStringLiteral(value)}%'"
+                : $"Convert({safeColumn}, 'System.String') LIKE '%{EscapeStringLiteral(value)}%'",
+            "=" or "<>" or ">" or ">=" or "<" or "<=" => $"{safeColumn} {filterOperator} {BuildLiteral(column.DataType, value)}",
             _ => string.Empty
         };
     }

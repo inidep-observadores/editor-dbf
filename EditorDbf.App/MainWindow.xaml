@@ -20,6 +20,7 @@
 
     <Window.Resources>
         <infra:FilterParamOperatorConverter x:Key="FilterParamOperatorConverter"/>
+        <infra:FilterDisplayConverter x:Key="FilterDisplayConverter"/>
     </Window.Resources>
 
     <Grid>
@@ -292,7 +293,26 @@
                                          ItemsSource="{Binding DataContext.DbfFiles, RelativeSource={RelativeSource AncestorType=Window}}"
                                          SelectedItem="{Binding DataContext.SelectedDbfFile, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}"
                                          BorderThickness="0"
-                                         Margin="4,4,4,0"/>
+                                         Margin="4,4,4,0">
+                                    <ListBox.InputBindings>
+                                        <KeyBinding Key="Delete" Command="{Binding DataContext.DeleteFileCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                    </ListBox.InputBindings>
+                                    <ListBox.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Refrescar" 
+                                                      Command="{Binding DataContext.RefreshFilesCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                      Icon="{infra:Icon Text=&#xE72C;}"/>
+                                            <Separator/>
+                                            <MenuItem Header="Eliminar archivo" 
+                                                      Command="{Binding DataContext.DeleteFileCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                      Icon="{infra:Icon Text=&#xE74D;}"/>
+                                            <Separator/>
+                                            <MenuItem Header="Mostrar en el explorador" 
+                                                      Command="{Binding DataContext.ShowInExplorerCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                      Icon="{infra:Icon Text=&#xED25;}"/>
+                                        </ContextMenu>
+                                    </ListBox.ContextMenu>
+                                </ListBox>
 
                                 <GridSplitter Grid.Row="2" Height="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Cursor="SizeNS" ResizeBehavior="PreviousAndNext">
                                     <GridSplitter.Template>
@@ -605,35 +625,56 @@
                                               VirtualizingStackPanel.VirtualizationMode="Recycling"
                                               EnableRowVirtualization="True"
                                               EnableColumnVirtualization="True">
+                                        <DataGrid.InputBindings>
+                                            <KeyBinding Key="Delete" 
+                                                        Command="{Binding DataContext.DeleteSelectedRecordCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                        </DataGrid.InputBindings>
                                         <DataGrid.ContextMenu>
                                             <ContextMenu>
-                                                <MenuItem Header="Cambiar valor..." 
-                                                          Icon="{infra:Icon Text=&#xE70F;}"
-                                                          Command="{Binding ChangeValueCommand}"/>
-                                                <Separator/>
                                                 <MenuItem Header="Filtrar por valor" Icon="{infra:Icon Text=&#xE71C;}">
-                                                    <MenuItem Header="Es igual" 
+                                                    <MenuItem Header="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterDisplayConverter}, ConverterParameter='='}" 
                                                               Command="{Binding FilterByValueCommand}" CommandParameter="{Binding LastRightClickedCellInfo}"/>
-                                                    <MenuItem Header="Es distinto"
+                                                    <MenuItem Header="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterDisplayConverter}, ConverterParameter='&lt;&gt;'}"
                                                               Command="{Binding FilterByValueCommand}" CommandParameter="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterParamOperatorConverter}, ConverterParameter='&lt;&gt;'}"/>
-                                                    <MenuItem Header="Es mayor que"
+                                                    <MenuItem Header="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterDisplayConverter}, ConverterParameter='&gt;'}"
                                                               Command="{Binding FilterByValueCommand}" CommandParameter="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterParamOperatorConverter}, ConverterParameter='&gt;'}"/>
-                                                    <MenuItem Header="Es menor que"
+                                                    <MenuItem Header="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterDisplayConverter}, ConverterParameter='&lt;'}"
                                                               Command="{Binding FilterByValueCommand}" CommandParameter="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterParamOperatorConverter}, ConverterParameter='&lt;'}"/>
-                                                    <MenuItem Header="Contiene"
-                                                              Command="{Binding FilterByValueCommand}" CommandParameter="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterParamOperatorConverter}, ConverterParameter='CONTIENE'}"/>
                                                     <Separator/>
                                                     <MenuItem Header="Personalizado..." Icon="{infra:Icon Text=&#xE70F;}">
-                                                        <MenuItem Header="Es igual a ..."
+                                                        <MenuItem Header="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterDisplayConverter}, ConverterParameter='=:CUSTOM'}"
                                                                   Command="{Binding FilterCustomCommand}" CommandParameter="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterParamOperatorConverter}, ConverterParameter='='}"/>
-                                                        <MenuItem Header="Es distinto de ..."
+                                                        <MenuItem Header="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterDisplayConverter}, ConverterParameter='&lt;&gt;:CUSTOM'}"
                                                                   Command="{Binding FilterCustomCommand}" CommandParameter="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterParamOperatorConverter}, ConverterParameter='&lt;&gt;'}"/>
-                                                        <MenuItem Header="Contiene ..."
+                                                        <Separator/>
+                                                        <MenuItem Header="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterDisplayConverter}, ConverterParameter='&gt;:CUSTOM'}"
+                                                                  Command="{Binding FilterCustomCommand}" CommandParameter="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterParamOperatorConverter}, ConverterParameter='&gt;'}"/>
+                                                        <MenuItem Header="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterDisplayConverter}, ConverterParameter='&gt;=:CUSTOM'}"
+                                                                  Command="{Binding FilterCustomCommand}" CommandParameter="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterParamOperatorConverter}, ConverterParameter='&gt;='}"/>
+                                                        <MenuItem Header="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterDisplayConverter}, ConverterParameter='&lt;:CUSTOM'}"
+                                                                  Command="{Binding FilterCustomCommand}" CommandParameter="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterParamOperatorConverter}, ConverterParameter='&lt;'}"/>
+                                                        <MenuItem Header="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterDisplayConverter}, ConverterParameter='&lt;=:CUSTOM'}"
+                                                                  Command="{Binding FilterCustomCommand}" CommandParameter="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterParamOperatorConverter}, ConverterParameter='&lt;='}"/>
+                                                        <Separator/>
+                                                        <MenuItem Header="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterDisplayConverter}, ConverterParameter='ENTRE:CUSTOM'}"
+                                                                  Command="{Binding FilterBetweenCommand}"/>
+                                                        <Separator/>
+                                                        <MenuItem Header="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterDisplayConverter}, ConverterParameter='CONTIENE:CUSTOM'}"
                                                                   Command="{Binding FilterCustomCommand}" CommandParameter="{Binding LastRightClickedCellInfo, Converter={StaticResource FilterParamOperatorConverter}, ConverterParameter='CONTIENE'}"/>
                                                     </MenuItem>
                                                 </MenuItem>
                                                 <Separator/>
                                                 <MenuItem Header="Quitar todos los filtros" Command="{Binding ClearFilterCommand}" Icon="{infra:Icon Text=&#xE894;}"/>
+                                                <Separator/>
+                                                <MenuItem Header="Seleccionar todo" Command="SelectAll" Icon="{infra:Icon Text=&#xE8B1;}"/>
+                                                <MenuItem Header="Invertir selección" 
+                                                          Command="{Binding InvertSelectionCommand}" 
+                                                          CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget}"
+                                                          Icon="{infra:Icon Text=&#xE8B1;}"/>
+                                                <Separator/>
+                                                <MenuItem Header="Cambiar valor..." 
+                                                          Icon="{infra:Icon Text=&#xE70F;}"
+                                                          Command="{Binding ChangeValueCommand}"/>
                                                 <Separator/>
                                                 <MenuItem Header="Copiar" Command="Copy" Icon="{infra:Icon Text=&#xE8C8;}"/>
                                                 <MenuItem Header="Exportar..." Command="{Binding ExportCommand}" Icon="{infra:Icon Text=&#xE78C;}"/>

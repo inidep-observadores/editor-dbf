@@ -46,13 +46,15 @@ public sealed class MainViewModel : ObservableObject
         AddRecordCommand = new RelayCommand(AddRecord, () => ActiveTableTab is not null);
         DeleteSelectedRecordCommand = new RelayCommand(DeleteSelectedRecord, () => ActiveTableTab?.HasSelectedRecords == true);
         ReloadTableCommand = new RelayCommand(ReloadCurrentTable, () => ActiveTableTab is not null);
-        SaveTableCommand = new RelayCommand(SaveCurrentTable, () => ActiveTableTab is not null);
+        SaveTableCommand = new RelayCommand(SaveCurrentTable, () => ActiveTableTab?.HasPendingChanges == true);
         ImportFromTableCommand = new RelayCommand(ImportFromTable, () => ActiveTableTab is not null);
         ApplyCodePageCommand = new RelayCommand(ApplyCodePageForCurrentTable, () => ActiveTableTab is not null && SelectedCodePageOption is not null);
         SaveCodePageToTableCommand = new RelayCommand(SaveCodePageToTableHeader, () => ActiveTableTab is not null && SelectedCodePageOption?.LanguageDriver is not null);
         CopyStructureCommand = new RelayCommand(CopyStructureToClipboard, () => ActiveTableTab is not null);
         CloseSelectedTabCommand = new RelayCommand(CloseSelectedTab, () => SelectedOpenTable is not null);
         OpenSqlConsoleCommand = new RelayCommand(OpenSqlConsole, () => SelectedConnection is not null);
+        DeleteFileCommand = new RelayCommand(DeleteFile, () => SelectedConnection is not null && !string.IsNullOrWhiteSpace(SelectedDbfFile));
+        ShowInExplorerCommand = new RelayCommand(ShowInExplorer, () => SelectedConnection is not null && !string.IsNullOrWhiteSpace(SelectedDbfFile));
 
         TryRestoreLastConnection();
         IsDarkTheme = _state.IsDarkTheme;
@@ -99,8 +101,9 @@ public sealed class MainViewModel : ObservableObject
     public ICommand CopyStructureCommand { get; }
 
     public ICommand CloseSelectedTabCommand { get; }
-
     public ICommand OpenSqlConsoleCommand { get; }
+    public ICommand DeleteFileCommand { get; }
+    public ICommand ShowInExplorerCommand { get; }
 
     public ConnectionProfile? SelectedConnection
     {
@@ -361,6 +364,21 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
+        var count = ActiveTableTab.SelectedRecordsCount > 0 
+            ? ActiveTableTab.SelectedRecordsCount 
+            : (ActiveTableTab.SelectedRecord != null ? 1 : 0);
+
+        if (count == 0) return;
+
+        var confirmMsg = count == 1
+            ? "¿Está seguro de que desea borrar el registro seleccionado?"
+            : $"¿Está seguro de que desea borrar los {count} registros seleccionados?";
+
+        var result = MessageBox.Show(confirmMsg, "Confirmar Eliminación", 
+            MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+        if (result != MessageBoxResult.Yes) return;
+
         var deleted = ActiveTableTab.DeleteSelectedRecords();
         if (deleted > 0)
         {
@@ -409,7 +427,34 @@ public sealed class MainViewModel : ObservableObject
     private void SaveCurrentTable()
     {
         if (ActiveTableTab is null) return;
-        SaveTab(ActiveTableTab);
+        
+        if (SaveTab(ActiveTableTab))
+        {
+            // Verificar otras pestañas con cambios
+            var otherDirtyTabs = OpenTables.OfType<TableTabViewModel>()
+                .Where(t => t != ActiveTableTab && t.HasPendingChanges)
+                .ToList();
+
+            if (otherDirtyTabs.Any())
+            {
+                var fileNames = string.Join("\n- ", otherDirtyTabs.Select(t => t.FileName));
+                var result = MessageBox.Show(
+                    $"También hay cambios pendientes en:\n- {fileNames}\n\n¿Desea guardarlos ahora?",
+                    "Cambios pendientes en otras tablas",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    var savedCount = 0;
+                    foreach (var tab in otherDirtyTabs)
+                    {
+                        if (SaveTab(tab)) savedCount++;
+                    }
+                    StatusMessage = $"Se guardaron {savedCount + 1} tablas en total.";
+                }
+            }
+        }
     }
 
     private bool SaveTab(TableTabViewModel tab)
@@ -431,6 +476,68 @@ public sealed class MainViewModel : ObservableObject
             StatusMessage = $"Error al guardar: {exception.Message}";
             MessageBox.Show(exception.Message, "Error al guardar", MessageBoxButton.OK, MessageBoxImage.Error);
             return false;
+        }
+    }
+
+    private void DeleteFile()
+    {
+        if (SelectedConnection is null || string.IsNullOrWhiteSpace(SelectedDbfFile)) return;
+
+        var filePath = Path.Combine(SelectedConnection.FolderPath, SelectedDbfFile);
+        
+        var result = MessageBox.Show(
+            $"¿Está seguro de que desea eliminar el archivo '{SelectedDbfFile}' permanentemente del disco?",
+            "Confirmar eliminación de archivo",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+
+        if (result != MessageBoxResult.Yes) return;
+
+        try
+        {
+            // Cerrar pestaña si está abierta
+            var tab = OpenTables.OfType<TableTabViewModel>().FirstOrDefault(t => 
+                string.Equals(t.FilePath, filePath, StringComparison.OrdinalIgnoreCase));
+            
+            if (tab != null)
+            {
+                CloseTab(tab);
+            }
+
+            File.Delete(filePath);
+            
+            // Eliminar archivos de memo si existen
+            var memoExtensions = new[] { ".fpt", ".dbt", ".FPT", ".DBT" };
+            foreach (var ext in memoExtensions)
+            {
+                var memoPath = Path.ChangeExtension(filePath, ext);
+                if (File.Exists(memoPath)) File.Delete(memoPath);
+            }
+
+            StatusMessage = $"Archivo eliminado: {SelectedDbfFile}";
+            RefreshFiles();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error al eliminar archivo: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void ShowInExplorer()
+    {
+        if (SelectedConnection is null || string.IsNullOrWhiteSpace(SelectedDbfFile)) return;
+
+        var filePath = Path.Combine(SelectedConnection.FolderPath, SelectedDbfFile);
+        if (!File.Exists(filePath)) return;
+
+        try
+        {
+            var argument = $"/select,\"{filePath}\"";
+            System.Diagnostics.Process.Start("explorer.exe", argument);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error al abrir el explorador: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 

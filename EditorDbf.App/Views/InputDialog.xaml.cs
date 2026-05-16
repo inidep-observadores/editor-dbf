@@ -22,11 +22,14 @@ public partial class InputDialog : Window
 
     public static string? Show(string question, string title = "Entrada de datos", string defaultAnswer = "", Window? owner = null)
     {
-        var dialog = new InputDialog(question, defaultAnswer)
+        var dialog = new InputDialog(question, defaultAnswer);
+        dialog.Title = title;
+
+        var actualOwner = owner ?? Application.Current.MainWindow;
+        if (actualOwner != null && actualOwner != dialog)
         {
-            Title = title,
-            Owner = owner ?? Application.Current.MainWindow
-        };
+            dialog.Owner = actualOwner;
+        }
 
         if (dialog.ShowDialog() == true)
         {
