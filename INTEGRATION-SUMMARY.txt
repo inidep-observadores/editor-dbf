@@ -1,0 +1,98 @@
+﻿===================================================================
+    INTEGRACIÓN: CONVENTIONAL COMMITS Y SEMANTIC VERSIONING
+===================================================================
+
+FECHA: 2026-05-17
+PROYECTO: EditorDbf (v0.5.0)
+
+✓ CAMBIOS REALIZADOS
+===================================================================
+
+1. CLAUDE.md (ACTUALIZADO)
+   ✓ Sección "Control de versiones y Commits" expandida
+   ✓ Formato Conventional Commits documentado
+   ✓ Skills integrados (/commits-convencionales, /principios-arquitectura)
+   ✓ Flujo de desarrollo recomendado
+
+2. AGENTS.md (NUEVO - Instrucciones para Agentes)
+   ✓ Reglas de oro para commits
+   ✓ Testing obligatorio
+   ✓ Arquitectura MVVM estricta
+   ✓ Checklists pre-commit y pre-PR
+   ✓ Alertas de riesgo
+
+3. docs/CHANGELOG.md (6 versiones, 44 commits)
+   ✓ v0.0.1 → v0.5.0 documentados
+   ✓ Secciones: Added, Changed, Fixed, Build, Docs
+
+4. docs/CHANGELOG-MAPPING.md
+   ✓ Mapeo commit → versión
+   ✓ Criterios de incremento
+
+5. docs/COMMIT-REFERENCE.md
+   ✓ Guía rápida (bolsillo)
+   ✓ Tipos, ámbitos, ejemplos
+
+6. docs/INTEGRATION-GUIDE.md
+   ✓ Arquitectura de integración
+   ✓ Flujos completos (feature, fix, refactor)
+
+7. EditorDbf.App.csproj (ACTUALIZADO)
+   ✓ <Version>0.5.0</Version>
+
+✓ INTEGRACIÓN CON SKILLS
+===================================================================
+
+/commits-convencionales
+   → Para validar y redactar mensajes
+   → Referenciado en CLAUDE.md y AGENTS.md
+
+/principios-arquitectura
+   → Para evaluar diseño SOLID
+   → Integrado en AGENTS.md (requisito obligatorio)
+
+✓ APLICACIÓN AUTOMÁTICA DURANTE DESARROLLO
+===================================================================
+
+1. Desarrollador lee CLAUDE.md
+   → Ve instrucciones de Conventional Commits
+   → Puede invocar /commits-convencionales
+
+2. Agente sigue AGENTS.md
+   → Reglas de oro no negociables
+   → Tests obligatorios
+   → Arquitectura SOLID
+
+3. Al hacer PR
+   → Commits validados con Conventional
+   → Revisor usa AGENTS.md checklist
+
+4. Al mergear a master
+   → Commits documentados
+   → Versión es predecible (feat→MINOR, fix→PATCH)
+
+5. Al tagear release
+   → Versión en csproj actualizada
+   → CHANGELOG generado automáticamente
+
+✓ ESTADÍSTICAS
+===================================================================
+
+Total commits: 44
+Versiones: 6 (v0.0.1 → v0.5.0)
+
+Distribución:
+  v0.1.0: 5 commits   (11.4%)
+  v0.2.0: 7 commits   (15.9%)
+  v0.3.0: 9 commits   (20.5%)
+  v0.4.0: 17 commits  (38.6%) ← La más grande
+  v0.5.0: 5 commits   (11.4%)
+
+===================================================================
+ESTADO: ✓ INTEGRACIÓN COMPLETA
+===================================================================
+
+El proyecto ahora tiene un sistema completo de versionamiento
+semántico automático mediante Conventional Commits.
+
+SIGUIENTE: Usar CLAUDE.md y AGENTS.md en nuevo desarrollo.

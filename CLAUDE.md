@@ -24,7 +24,7 @@ dotnet clean
 dotnet publish -c Release
 ```
 
-No hay suite de tests automatizados en este proyecto.
+**NOTA**: Hay suite de tests unitarios con 42 tests que cubren core functionality. Ver `EditorDbf.Tests/` y ejecutar con `dotnet test`.
 
 ### Debugging
 
@@ -100,13 +100,73 @@ Los perfiles de conexión se guardan en:
 %LOCALAPPDATA%\EditorDbf\connections.json
 ```
 
-## Control de versiones
+## Control de versiones y Commits
+
+Este proyecto usa **Conventional Commits** y **Semantic Versioning** para automatizar versionamiento y changelog.
+
+### Rama y flujo de trabajo
 
 - **Branch principal**: `master` — código estable, listo para producción
 - **Feature branches**: `feature/*` — desarrollo de nuevas características
-- **Convención de commits**: Mensajes descriptivos en español o inglés. Ejemplos:
-  - `fix: corregir pérdida de separador decimal en filtros`
-  - `feat: conversión automática de punto a coma en campos numéricos`
+- **Versionamiento**: [Semantic Versioning 2.0.0](https://semver.org/es/) (MAJOR.MINOR.PATCH)
+
+### Formato de commits (Conventional Commits)
+
+Todos los commits deben seguir el formato:
+
+```
+tipo(ámbito): descripción
+
+[cuerpo opcional]
+
+[footer opcional]
+```
+
+**Tipos permitidos**:
+- `feat`: Nueva funcionalidad → incrementa MINOR
+- `fix`: Corrección de bug → incrementa PATCH
+- `refactor`: Reorganización sin cambio observable
+- `perf`: Mejora de rendimiento
+- `style`: Formato, sin cambio funcional
+- `docs`: Cambios de documentación
+- `test`: Adición o ajuste de pruebas
+- `build`: Cambios en build, dependencias, SDK
+- `ci`: Cambios en CI/CD
+- `chore`: Mantenimiento (no code)
+- `revert`: Revierte un commit anterior
+
+**Ejemplos válidos**:
+```
+feat(filtrado): agregar operador ENTRE en filtrado SQL
+fix(edición): corregir pérdida de separador decimal en campos numéricos
+refactor(viewmodels): desacoplar de diálogos WPF
+docs: expandir CLAUDE.md con debugging y estructura
+test(filtering): agregar tests para operadores LIKE e IS NULL
+build(installer): cambiar ruta a Program Files (64-bit)
+```
+
+**BREAKING CHANGE**:
+Si un cambio rompe compatibilidad, usa `!` o agrega `BREAKING CHANGE:` en el pie:
+```
+feat(api)!: cambiar estructura de respuesta JSON
+
+BREAKING CHANGE: el campo 'data' ahora es 'results'
+```
+
+### Archivo de referencia
+
+El skill **commits-convencionales** está disponible en `.claude/skills/commits-convencionales/` para consulta rápida y redacción de mensajes.
+
+### Changelog y versiones
+
+- **Changelog**: Ver `docs/CHANGELOG.md` con historial completo desde v0.0.1
+- **Versión actual**: v0.5.0 (definida en `EditorDbf.App/EditorDbf.App.csproj`)
+- **Mapeo de commits**: Ver `docs/CHANGELOG-MAPPING.md` para entender cómo se clasifican commits en versiones
+
+Los commits se agrupan automáticamente en versiones basadas en su tipo:
+- Cambios `feat` = nueva versión MINOR (0.x.0)
+- Cambios `fix`, `style`, `perf`, etc. = nueva versión PATCH (0.0.x)
+- `BREAKING CHANGE` = nueva versión MAJOR (x.0.0)
 
 ## Temas (Light / Dark)
 
@@ -138,3 +198,53 @@ El intercambio en runtime reemplaza `Application.Current.Resources.MergedDiction
 - Los cambios en tablas se detectan automáticamente vía `DataTable` events: `RowChanged`, `RowDeleted`, `TableNewRow`.
 - El ViewModel expone un flag `HasPendingChanges` que se sincroniza con estos eventos.
 - La selección múltiple de filas usa el modo `Extended` del DataGrid.
+
+## Skills disponibles
+
+Se han definido dos skills locales para mantener coherencia arquitectónica y de versionamiento:
+
+### 1. `/commits-convencionales`
+Guía para redactar mensajes de commit usando Conventional Commits en español. Usar cuando:
+- Propongas un mensaje de commit
+- Revises commits antes de pusharlos
+- Squashes o merges requieran redacción de mensaje
+- Necesites ejemplos de formato válido
+
+Ubicación: `.claude/skills/commits-convencionales/`
+
+**Ejemplo de uso**:
+```
+/commits-convencionales ¿Es este un mensaje válido? "refactor: mejora de performance"
+```
+
+### 2. `/principios-arquitectura`
+Guía para aplicar SOLID, Clean Code, Clean Architecture, separación por capas y Repository Pattern. Usar cuando:
+- Diseñes nueva arquitectura
+- Refactorices código existente
+- Definas límites entre capas (UI/Dominio/Datos)
+- Evalúes si una abstracción realmente mejora el código
+
+Ubicación: `.claude/skills/principios-arquitectura/`
+
+**Ejemplo de uso**:
+```
+/principios-arquitectura ¿Esta clase viola SRP? [codigo...]
+```
+
+## Flujo recomendado para desarrollo
+
+1. **Crear rama feature**: `git checkout -b feature/descripcion-breve`
+2. **Implementar cambios**: Aplicar principios de arquitectura según corresponda
+3. **Redactar commits**: Usar `/commits-convencionales` si hay dudas
+4. **Push**: `git push origin feature/descripcion-breve`
+5. **PR/Review**: Descripción debe referenciar cambios convencionales
+6. **Merge a master**: Los commits quedan documentados en CHANGELOG automáticamente
+
+## Testing
+
+Antes de hacer PR, asegurate que:
+- Los tests existentes pasen: `dotnet test`
+- Nuevas features tengan tests correspondientes
+- Coverage no disminuya significativamente
+
+Ver `EditorDbf.Tests/` para estructura de tests.

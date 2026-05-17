@@ -1,70 +1,256 @@
-# Agent Guidelines for EditorDbf
+# AGENTS.md
 
-This document provides instructions for agentic coding assistants working on the EditorDbf project.
+Instrucciones específicas para agentes de Claude Code que trabajen en este repositorio.
 
-## 1. Essential Commands
+## Objetivo del proyecto
 
-### Build and Execution
-- **Build Project**: `dotnet build`
-- **Run Application**: `dotnet run --project EditorDbf.App`
-- **Clean Artifacts**: `dotnet clean`
-- **Publish**: `dotnet publish`
+EditorDbf es un editor WPF de alto rendimiento para archivos DBF (dBASE) que proporciona:
+- Visualización y edición de datos en grillas
+- Filtrado avanzado con operadores SQL
+- Consola SQL integrada
+- Gestión de múltiples conexiones
+- Sistema de temas light/dark
+- Exportación de datos
 
-### Testing
-- **Automated Tests**: Execute `dotnet test` from the root directory to run the xUnit test suite. Ensure all tests pass before submitting changes.
-- **Manual Verification**: Should still be done to verify UI behavior and theme consistency.
+Versión actual: **0.5.0**
 
-## 2. Code Style and Conventions
+---
 
-### General Architecture
-- **Pattern**: Strict MVVM (Model-View-ViewModel).
-- **Framework**: .NET 10 (`net10.0-windows`), C# 13.
-- **UI**: WPF (Windows Presentation Foundation). Avoid external UI libraries; use custom styles in `EditorDbf.App/Themes/`.
+## Reglas de Oro para Agentes
 
-### Naming Conventions
-- **Classes/Methods**: PascalCase (Standard C#).
-- **Private Fields**: camelCase (typically prefixed with `_` for class-level fields).
-- **Local Variables**: camelCase.
-- **UI Resources**: Brushes in theme files use descriptive keys (e.g., `AppBackgroundBrush`, `AccentBrush`).
+### 1. Convenciones de Commit (OBLIGATORIO)
 
-### Imports and Formatting
-- Use standard C# 13 formatting.
-- Organize imports logically; avoid unnecessary namespace pollution.
-- Keep XAML clean and use `DynamicResource` for all theme-related colors.
+**Todos los commits DEBEN seguir Conventional Commits**. Antes de crear un commit:
 
-### MVVM Implementation
-- **ViewModels**: Must inherit from `ObservableObject`.
-- **Commands**: Use `RelayCommand`. Ensure `CanExecute` predicates are correctly implemented and `RaiseCanExecuteChanged()` is called when triggers change.
-- **Views**: XAML files should contain minimal logic. Behavioral logic must reside in the ViewModel.
+1. Invoca `/commits-convencionales` si hay dudas
+2. Usa el formato: `tipo(ámbito): descripción`
+3. Escribe en español
+4. Sé específico y orientado al resultado
+5. NO uses punto final en la descripción
 
-### Types and Data Handling
-- **DBF Mapping**: Use `DotNetDBF`. Follow these mappings:
-  - `Logical` -> `bool`
-  - `Date` -> `DateTime`
-  - `Numeric` -> `decimal`
-- **Encoding**: Use ANSI code pages with fallback to `CP1252`.
-- **Dates**: Hardcoded format is `dd/MM/yyyy` across the application.
+**Tipos válidos**: `feat`, `fix`, `refactor`, `docs`, `test`, `build`, `style`, `perf`, `chore`, `ci`, `revert`
 
-### Error Handling and Localizations
-- **Language**: All UI text, labels, and error messages MUST be in **Spanish**.
-- **Exceptions**: Use descriptive error dialogs for users. Do not let the application crash silently.
+**Ejemplos correctos**:
+- ✅ `feat(edición): agregar validación de entrada en campos numéricos`
+- ✅ `fix(filtrado): corregir comparación de fechas con timezone`
+- ✅ `refactor(services): extraer lógica de validación a clase separada`
+- ✅ `test(viewmodels): ampliar tests para operadores de filtrado`
 
-### Theme System
-- Themes are managed via `LightTheme.xaml` and `DarkTheme.xaml`.
-- To add a new color:
-  1. Define the key in `LightTheme.xaml`.
-  2. Define the same key in `DarkTheme.xaml`.
-  3. Reference via `DynamicResource` in `ControlStyles.xaml` or specific Views.
-- Theme switching is handled in `MainWindow.xaml.cs::ApplyTheme()` by replacing `Application.Current.Resources.MergedDictionaries[0]`.
+**Ejemplos incorrectos**:
+- ❌ `Update stuff` — muy vago
+- ❌ `feat: corregir bug.` — punto final
+- ❌ `feat(all): cambio general` — ámbito demasiado genérico
 
-### Persistence
-- Connection profiles are stored in JSON format at `%LOCALAPPDATA%\EditorDbf\connections.json`.
-- Database saves must use a temporary file and an atomic move to preserve `.fpt` (memo) files.
+### 2. Versionamiento Automático
 
-## 3. Project Layers Reference
+Los commits se agrupan automáticamente en versiones:
 
-- **Infrastructure**: `ObservableObject`, `RelayCommand` (MVVM Base).
-- **Models**: `ConnectionProfile`, `AppState`, `DbfTableDocument`, `DbfFieldDescriptor` (Data POCOs).
-- **Services**: `DbfTableService`, `ConnectionRepository` (I/O and Logic).
-- **ViewModels**: `MainViewModel`, `TableTabViewModel` (UI Logic).
-- **Views**: `MainWindow.xaml`, `App.xaml` (XAML).
+| Tipo de commit | Incremento | Versión nueva |
+|---|---|---|
+| `feat` | MINOR | 0.x.0 |
+| `fix`, `style`, `perf`, `docs`, `chore` | PATCH | 0.0.x |
+| `BREAKING CHANGE` | MAJOR | x.0.0 |
+
+**Ejemplo**:
+- v0.5.0 actual
+- Haces `feat(ui): nuevo panel`
+- Siguiente: v0.6.0
+- Haces `fix(filtrado): corregir bug`
+- Siguiente: v0.6.1
+
+NO actualices manualmente `EditorDbf.App.csproj::Version` — se hace automáticamente al tagear release.
+
+### 3. Arquitectura y MVVM Estricto
+
+Respeta la separación de capas:
+
+```
+Infrastructure/       ← ObservableObject, RelayCommand (base)
+Models/              ← Datos puros, sin lógica
+Services/            ← I/O, persistencia, acceso a archivos
+ViewModels/          ← Lógica de presentación, comandos, estado
+Views/               ← XAML puro, binding
+```
+
+Antes de refactorizar, invoca `/principios-arquitectura` si:
+- Vas a introducir una clase nueva
+- Vas a mover código entre capas
+- Vas a crear una interfaz o abstracción
+
+**Regla**: ViewModels DEBEN ser testables sin WPF. Si necesitas `MessageBox` o `SaveFileDialog`, injéctalo vía `IDialogService`.
+
+### 4. Testing Obligatorio
+
+- **NO haya código sin tests** en ViewModels o Services
+- Tests viven en `EditorDbf.Tests/`
+- Usa `xUnit` + `NSubstitute` para mocks + `FluentAssertions`
+- Antes de PR, ejecuta: `dotnet test`
+
+**Áreas de cobertura crítica**:
+- Filtrado SQL (todos los operadores: `=`, `<>`, `>`, `<`, `>=`, `<=`, `ENTRE`, `LIKE`, `VACIO`, `NO VACIO`)
+- Tipos de datos (string, numeric, date, bool)
+- Validaciones de entrada
+- Manejo de errors
+
+### 5. Documentación de Cambios
+
+Si tu PR toca:
+- **Nuevas features**: Actualiza el ejemplo en CLAUDE.md si aplica
+- **Cambios de API**: Documenta en docstrings (una línea máximo)
+- **Arquitectura**: Actualiza las secciones correspondientes en CLAUDE.md
+- **Breaking changes**: Usa `BREAKING CHANGE:` en el footer del commit
+
+### 6. Interfaz de Usuario
+
+- **Idioma**: TODO en español (labels, tooltips, mensajes de error)
+- **Fecha**: Siempre formato `dd/MM/yyyy`
+- **Temas**: Nuevos colores van en AMBOS `LightTheme.xaml` y `DarkTheme.xaml` con la misma clave
+- **Binding**: Usa `{Binding Propiedad, Mode=TwoWay}` para data-aware controls
+- **Performance**: DataGrid con 100k+ filas debe ser responsive
+
+### 7. DBF y Persistencia
+
+- El `DbfTableService` maneja conversión de tipos automáticamente
+- Preserva el byte de firma DBF original
+- El code page se detecta al cargar (fallback CP1252)
+- Guardado usa archivo temporal + move atómico (respeta `.fpt`)
+
+**NO hagas**:
+- ❌ Guardar directo al archivo original
+- ❌ Ignorar code page
+- ❌ Confiar en los tipos del DataTable sin conversión
+
+---
+
+## Checklist antes de Hacer Commit
+
+- [ ] Código compilado sin warnings: `dotnet build`
+- [ ] Tests pasan: `dotnet test`
+- [ ] Mensaje de commit sigue Conventional Commits
+- [ ] Cambios son atómicos (un objetivo por commit)
+- [ ] Documentación actualizada si aplica
+- [ ] Colores nuevos en AMBOS temas
+- [ ] Binding XAML correcto
+- [ ] ViewModels testables (sin WPF directo)
+
+## Checklist antes de PR
+
+- [ ] Branch basado en `master`
+- [ ] Todos los commits siguen Conventional Commits
+- [ ] Descripción de PR incluye ámbito del cambio
+- [ ] Tests nuevos para features nuevas
+- [ ] No hay breaking changes no documentados
+- [ ] CLAUDE.md actualizado si corresponde
+
+---
+
+## Flujo Típico
+
+```powershell
+# 1. Crear rama
+git checkout -b feature/nueva-funcionalidad
+
+# 2. Implementar (con tests)
+# ... editar archivos ...
+dotnet test
+
+# 3. Commit con Conventional Commits
+git add .
+git commit -m "feat(ámbito): descripción"
+# (O invoke /commits-convencionales si hay dudas)
+
+# 4. Push
+git push origin feature/nueva-funcionalidad
+
+# 5. PR a master con descripción detallada
+# La description debe listar el tipo y ámbito de cambios
+
+# 6. Merge (squash si hay muchos commits exploratorios)
+```
+
+---
+
+## Debugging
+
+### En Visual Studio
+```powershell
+# Abre EditorDbf.sln y presiona F5
+# Los breakpoints funcionan normalmente
+```
+
+### En terminal
+```powershell
+dotnet run --project EditorDbf.App
+# Los logs aparecen en stdout
+```
+
+### Tests
+```powershell
+# Ejecutar todos
+dotnet test
+
+# Un test específico
+dotnet test --filter "ClassName"
+
+# Con verbosity
+dotnet test --verbosity detailed
+```
+
+---
+
+## Referencias Rápidas
+
+| Recurso | Ubicación | Propósito |
+|---|---|---|
+| CLAUDE.md | `/CLAUDE.md` | Guía principal del proyecto |
+| CHANGELOG | `docs/CHANGELOG.md` | Historial de versiones |
+| Mapping commits | `docs/CHANGELOG-MAPPING.md` | Cómo se clasifican commits |
+| Skill Commits | `.claude/skills/commits-convencionales/` | Guía Conventional Commits |
+| Skill Arquitectura | `.claude/skills/principios-arquitectura/` | Principios SOLID, etc. |
+| Versión actual | `EditorDbf.App/EditorDbf.App.csproj` | Tag `<Version>` |
+
+---
+
+## Dudas Frecuentes
+
+**P: Mi commit es mitad feature, mitad fix. ¿Qué tipo uso?**
+A: Separa en dos commits: uno para la feature, otro para el fix. Los cambios deben ser atómicos.
+
+**P: ¿Puedo hacer breaking changes?**
+A: Solo si es absolutamente necesario. Usa `feat!` o `BREAKING CHANGE:` en el footer. Incrementará MAJOR version.
+
+**P: ¿Qué pasa con los commits que no siguen el formato?**
+A: Los agentes los rechazarán en PR. Usa `git commit --amend` para reescribir antes de mergear.
+
+**P: ¿Necesito actualizar CHANGELOG manualmente?**
+A: NO. Se genera automáticamente del historial de commits al tagear releases.
+
+**P: ¿Cómo hago un release nuevo?**
+A: Tagging:
+```powershell
+git tag -a v0.6.0 -m "Release 0.6.0"
+git push origin v0.6.0
+```
+
+---
+
+## Alertas de Riesgo
+
+🚨 **NUNCA**:
+- Hacer commit sin tests (si es en ViewModel/Service)
+- Ignorar warnings de build
+- Pushear a `master` directo (siempre vía PR)
+- Usar tipos Windows específicos en Services (hace testing imposible)
+- Olvidar color en AMBOS temas
+- Hacer breaking changes sin documentar
+
+⚠️ **TEN CUIDADO**:
+- Performance: La UI debe ser responsive con 100k+ filas
+- Code pages: DBF soporta múltiples encodings
+- Filtrado: Los operadores deben ser coherentes en SQL
+- Threads: WPF es single-threaded; usa Dispatcher si necesitas async
+
+---
+
+Última actualización: 2026-05-17
+Versión del proyecto: 0.5.0

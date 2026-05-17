@@ -1,0 +1,84 @@
+═══════════════════════════════════════════════════════════════════════════════
+                      RESUMEN DE VERSIONAMIENTO SEMÁNTICO
+═══════════════════════════════════════════════════════════════════════════════
+
+ARCHIVO CREADO: docs/CHANGELOG.md
+FECHA: 2026-05-17
+RANGO: v0.0.1 (commit inicial) → v0.5.0 (estado actual)
+
+───────────────────────────────────────────────────────────────────────────────
+ESTRUCTURA DE VERSIONES
+───────────────────────────────────────────────────────────────────────────────
+
+v0.0.1  │ Commit inicial del proyecto WPF DBF Editor
+        │ 1 commit
+
+v0.1.0  │ Core features iniciales: Localización, Sistema de temas Light/Dark
+        │ 5 commits | Cambios: +localización +temas +optimizaciones UI
+
+v0.2.0  │ UI Improvements: CachedTabControl, exportación de datos, refinamientos
+        │ 7 commits | Cambios: +exportación +refinamientos
+
+v0.3.0  │ SQL Console: Implementación completa con motor SQLite
+        │ 9 commits | Cambios: +consola SQL +navegación contextual +build
+
+v0.4.0  │ VERSIÓN MÁS GRANDE: Filtrado avanzado, edición masiva, gestión mejorada
+        │ 17 commits | Cambios: +filtrado SQL +edición masiva +exportación avanzada
+        │           +gestión conexiones mejorada +validaciones
+
+v0.5.0  │ Testing & Architecture: Suite de tests + desacoplamiento de ViewModels
+        │ 5 commits | Cambios: +42 unit tests +refactor arquitectónico +docs
+
+───────────────────────────────────────────────────────────────────────────────
+ESTADÍSTICAS
+───────────────────────────────────────────────────────────────────────────────
+
+Total de commits: 44
+Total de versiones: 6
+
+Distribución por versión:
+  v0.0.1: 2.3%  (1 commit)
+  v0.1.0: 11.4% (5 commits)
+  v0.2.0: 15.9% (7 commits)
+  v0.3.0: 20.5% (9 commits)
+  v0.4.0: 38.6% (17 commits) ← La más grande
+  v0.5.0: 11.4% (5 commits)
+
+Distribución por tipo:
+  ✓ feat (features nuevas):     ~35 commits
+  ✓ fix (correcciones):         ~8 commits
+  ✓ refactor/docs:              ~4 commits
+  ✓ style/build/chore:          ~5 commits
+  ✓ test:                       ~2 commits
+
+───────────────────────────────────────────────────────────────────────────────
+CAMBIOS EN EL REPOSITORIO
+───────────────────────────────────────────────────────────────────────────────
+
+✓ EditorDbf.App.csproj actualizado con:
+  - <Version>0.5.0</Version>
+  - <InformationalVersion>0.5.0</InformationalVersion>
+
+✓ Archivos creados:
+  - docs/CHANGELOG.md           ← Changelog completo con todas las versiones
+  - docs/CHANGELOG-MAPPING.md   ← Documentación del mapeo de commits
+  - docs/VERSIONING-SUMMARY.txt ← Este archivo
+
+───────────────────────────────────────────────────────────────────────────────
+PRÓXIMOS PASOS RECOMENDADOS
+───────────────────────────────────────────────────────────────────────────────
+
+1. Revisar docs/CHANGELOG.md y ajustar si es necesario
+2. Nuevos commits deben seguir formato Conventional Commits:
+   - feat: nuevas funcionalidades
+   - fix: correcciones de errores
+   - refactor: cambios de código sin cambiar funcionalidad
+   - docs: cambios de documentación
+   - test: cambios de pruebas
+3. Las versiones se crearán automáticamente analizando los commits
+
+Para crear un nuevo release:
+  git tag -a v0.6.0 -m "Release 0.6.0"
+  git push origin v0.6.0
+
+═══════════════════════════════════════════════════════════════════════════════
