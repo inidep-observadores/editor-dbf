@@ -6,7 +6,7 @@ El formato sigue [Conventional Commits](https://www.conventionalcommits.org/es/v
 
 ---
 
-## [0.5.0] - 2026-05-17
+## [0.5.0] - 2026-05-16
 
 ### Added
 - **test**: Suite de pruebas unitarias comprehensive que cubre:
@@ -40,7 +40,7 @@ El formato sigue [Conventional Commits](https://www.conventionalcommits.org/es/v
 
 ---
 
-## [0.4.0] - 2026-04-15
+## [0.4.0] - 2026-05-12
 
 ### Added
 - **feat(filtrado)**: Filtrado avanzado SQL con soporte de:
@@ -86,7 +86,7 @@ El formato sigue [Conventional Commits](https://www.conventionalcommits.org/es/v
 
 ---
 
-## [0.3.0] - 2026-03-20
+## [0.3.0] - 2026-05-10
 
 ### Added
 - **feat(sql-console)**: Implementación de consola SQL con ejecución de selecciones
@@ -122,7 +122,7 @@ El formato sigue [Conventional Commits](https://www.conventionalcommits.org/es/v
 
 ---
 
-## [0.2.0] - 2026-02-10
+## [0.2.0] - 2026-05-09
 
 ### Added
 - **feat(ui)**: Implementación de CachedTabControl y refinamientos de interfaz
@@ -145,7 +145,7 @@ El formato sigue [Conventional Commits](https://www.conventionalcommits.org/es/v
 
 ---
 
-## [0.1.0] - 2026-01-15
+## [0.1.0] - 2026-05-08
 
 ### Added
 - **feat(core)**: Implementación inicial de editor WPF para archivos DBF
@@ -180,7 +180,7 @@ El formato sigue [Conventional Commits](https://www.conventionalcommits.org/es/v
 
 ---
 
-## [0.0.1] - 2026-01-10
+## [0.0.1] - 2026-05-08
 
 ### Added
 - **Initial commit**: Commit inicial con estructura base del proyecto WPF DBF Editor
